@@ -27,7 +27,7 @@ def polynomial(x, coeff):
     poly = np.sum(terms_array)
     return poly
 
-def finite_difference(stepsize, range_val, level):
+def finite_difference(stepsize, range_val, samples_num, level):
     """
     Approximates the second derivative of the Hermitian functions defined
     earlier with the central midpoint difference method. Truncation on the
@@ -40,7 +40,7 @@ def finite_difference(stepsize, range_val, level):
     """
     x_0 = range_val[0]
     x_f = range_val[-1]
-    samples = np.arange(x_0, x_f, stepsize)
+    samples = np.linspace(x_0, x_f, samples_num)
     n = len(samples)
     func_vals = []
 
@@ -55,7 +55,7 @@ def finite_difference(stepsize, range_val, level):
 
     return samples_inner, terms, sec_der_vals
 
-def finite_difference_fourth(stepsize, range_val, level):
+def finite_difference_fourth(stepsize, range_val, samples_num, level):
     """
     Approximates the second derivative of the Hermitian functions defined
     earlier with the central midpoint difference method. Truncation on the
@@ -69,7 +69,7 @@ def finite_difference_fourth(stepsize, range_val, level):
 
     x_0 = range_val[0]
     x_f = range_val[-1]
-    samples = np.arange(x_0, x_f, stepsize)
+    samples = np.linspace(x_0, x_f, samples_num)
     n = len(samples)
     func_vals = []
 
@@ -97,7 +97,7 @@ def finite_difference_fourth(stepsize, range_val, level):
     return samples_inner, terms, sec_der_vals
 
 
-def analytical_second_derivative(x, coeffs):
+def analytical_second_derivative(x, coeffs, level):
     """
     Returns the values computed from the analytical calculation of the
     second derivative of any polynomial.
@@ -107,12 +107,26 @@ def analytical_second_derivative(x, coeffs):
     coeffs - (list): The coefficients in increasing order of monomial.
     """
     n = len(coeffs)
-    result = 0
-    for k in range(2, n):
-        result += k * (k - 1) * coeffs[k] * x**(k-2)
-    return result
+    func_vals = np.polyval(coeffs[level][::-1], x)
+    
+    sec_der_vals_exact = np.zeros_like(x, dtype=float)
+    for i in range(2, n):
+        sec_der_vals_exact += i * (i - 1) * coeffs[level][i] * (x ** (i - 2))
+    terms = -0.5 * sec_der_vals_exact / func_vals
+    return terms
 
-def err_finite_diff(range_stepsizes, num_stepsizes, range_val, level, coeffs, method):
+def plot_analytical_vals(x, coeffs, level):
+    vals = analytical_second_derivative(x, coeffs, level)
+
+    plt.loglog(x, vals)
+    plt.grid()
+    plt.xlabel('x')
+    plt.ylabel("E_l")
+    plt.title(f'Local Energy (E_l) for the {i} wavefunction, analytical method')
+    plt.show()
+
+
+def err_finite_diff(range_stepsizes, num_stepsizes, range_val, samples_num, level, coeffs, method):
     """
     Compute and plot the FDM's error with respect to the analytical derivative.
 
@@ -125,18 +139,21 @@ def err_finite_diff(range_stepsizes, num_stepsizes, range_val, level, coeffs, me
     """
     stepsizes_array = np.linspace(range_stepsizes[0], range_stepsizes[-1], num_stepsizes)
     n = len(stepsizes_array)
+
+    samples = np.linspace(range_val[0], range_val[-1], samples_num)
     rms_fdm_list = []
 
     for i in range(n):
+        sec_exact = analytical_second_derivative(samples, coeffs, level)
         if method == 1:
-            x_vals, other, y_vals = finite_difference_fourth(stepsizes_array[i], range_val, level)
+            x_vals, sec_fd, other = finite_difference_fourth(stepsizes_array[i], range_val, samples_num, level)
+            sec_exact = sec_exact[2:-2]
         else:
-            x_vals, other, y_vals = finite_difference(stepsizes_array[i], range_val, level)
+            x_vals, sec_fd, other = finite_difference(stepsizes_array[i], range_val, samples_num, level)
+            sec_exact = sec_exact[1:-1]
 
-        exact_der_vals = analytical_second_derivative(x_vals, coeffs[level])
-        fdm_err = y_vals - exact_der_vals
-        rms_fdm = np.sqrt(np.mean(fdm_err ** 2))
-        rms_fdm_list.append(rms_fdm)
+        rms = np.sqrt(np.mean((sec_fd - sec_exact) ** 2))
+        rms_fdm_list.append(rms)
 
     rms_fdm_list = np.array(rms_fdm_list)
     mask = rms_fdm_list > 0
@@ -155,7 +172,7 @@ def err_finite_diff(range_stepsizes, num_stepsizes, range_val, level, coeffs, me
 
     return stepsizes_array, rms_fdm_list
 
-def plot_2ndterm(stepsize, range_val, coeffs):
+def plot_2ndterm(stepsize, range_val, samples_num, coeffs):
     """
     Plots the results from the first-term calculation for the SHO S.E. obtained
     from the forwards difference method.
@@ -165,7 +182,7 @@ def plot_2ndterm(stepsize, range_val, coeffs):
     """
     num_polys = len(coeffs)
     for i in range(num_polys):
-        x_vals_i, y_vals_i, other = finite_difference(stepsize, range_val, i)
+        x_vals_i, y_vals_i, other = finite_difference(stepsize, range_val, samples_num, i)
         plt.plot(x_vals_i, y_vals_i)
         plt.grid()
         plt.xlabel('x')
@@ -173,7 +190,7 @@ def plot_2ndterm(stepsize, range_val, coeffs):
         plt.title(f'Hermite polynomial H_{i} second derivative')
         plt.show()
 
-def local_energy(stepsize, range_val, level, method):
+def local_energy(stepsize, range_val, samples_num, level, method):
     """
     Compute the local energy of a specific wavefunction.
 
@@ -184,15 +201,15 @@ def local_energy(stepsize, range_val, level, method):
     method - (bool): Whether to use fourth order truncation (==1) or second (else).
     """
     if method == 1:
-        x_vals, y_vals_first, other = finite_difference_fourth(stepsize, range_val, level)
+        x_vals, y_vals_first, other = finite_difference_fourth(stepsize, range_val, samples_num, level)
     else:
-        x_vals, y_vals_first, other = finite_difference(stepsize, range_val, level)
+        x_vals, y_vals_first, other = finite_difference(stepsize, range_val, samples_num, level)
 
     y_vals_sec = 0.5 * (x_vals ** 2)
     l_energy = y_vals_first + y_vals_sec
     return x_vals, l_energy
 
-def plot_local_energy(stepsize, range_val, coeffs, method):
+def plot_local_energy(stepsize, range_val, samples_num, coeffs, method):
     """
     Plot said local energy.
 
@@ -204,7 +221,7 @@ def plot_local_energy(stepsize, range_val, coeffs, method):
     """
     num_polys = len(coeffs)
     for i in range(num_polys):
-        x_vals_i, y_vals_i = local_energy(stepsize, range_val, i, method)
+        x_vals_i, y_vals_i = local_energy(stepsize, range_val, samples_num, i, method)
         plt.plot(x_vals_i, y_vals_i)
         plt.grid()
         plt.xlabel('x')
@@ -220,7 +237,7 @@ n_hermite = len(hermite_coeffs)
 x_vals_second_le = []
 local_energy_second_vals = []
 for i in range(n_hermite):
-    x_vals_le_second_i, local_energy_vals_second_i = local_energy(0.01, [-0.5, 0.5], i, 1)
+    x_vals_le_second_i, local_energy_vals_second_i = local_energy(0.01, [-1, 1], 1000, i, 1)
     x_vals_second_le.append(x_vals_le_second_i)
     local_energy_second_vals.append(local_energy_vals_second_i)
 
@@ -230,7 +247,7 @@ local_energy_second_vals = np.array(local_energy_second_vals)
 x_vals_fourth_le = []
 local_energy_fourth_vals = []
 for i in range(n_hermite):
-    x_vals_le_fourth_i, local_energy_vals_fourth_i = local_energy(0.01, [-0.5, 0.5], i, 1)
+    x_vals_le_fourth_i, local_energy_vals_fourth_i = local_energy(0.01, [-1, 1], 1000, i, 1)
     x_vals_fourth_le.append(x_vals_le_fourth_i)
     local_energy_fourth_vals.append(local_energy_vals_fourth_i)
 
@@ -238,16 +255,16 @@ x_vals_fourth_le = np.array(x_vals_fourth_le)
 local_energy_fourth_vals = np.array(local_energy_fourth_vals)
 
 # Plotting of these local energies:
-plot_local_energy(0.01, [-0.5, 0.5], hermite_coeffs, 1)
-plot_local_energy(0.01, [-0.5, 0.5], hermite_coeffs, 0)
+plot_local_energy(0.01, [-1, 1], 1000, hermite_coeffs, 1)
+plot_local_energy(0.01, [-1, 1], 1000, hermite_coeffs, 0)
 
 # Calculating the RMS error on these calculations, for 2nd order and 4th order truncations:
 
 stepsize_vals_second = []
 err_vals_second = []
 for i in range(n_hermite):
-    stepsize_vals_second_i, err_vals_second_i = err_finite_diff([1e-5, 1], 500,
-                                                [-0.5, 0.5], i, hermite_coeffs, 0)
+    stepsize_vals_second_i, err_vals_second_i = err_finite_diff([1e-5, 0.01], 500,
+                                                [-1, 1], 1000, i, hermite_coeffs, 0)
     stepsize_vals_second.append(stepsize_vals_second_i)
     err_vals_second.append(err_vals_second_i)
 
@@ -257,8 +274,8 @@ err_vals_second = np.array(err_vals_second)
 stepsize_vals_fourth = []
 err_vals_fourth = []
 for i in range(n_hermite):
-    stepsize_vals_fourth_i, err_vals_fourth_i = err_finite_diff([1e-5, 1], 500,
-                                                [-0.5, 0.5], i, hermite_coeffs, 1)
+    stepsize_vals_fourth_i, err_vals_fourth_i = err_finite_diff([1e-5, 0.01], 500,
+                                                [-1, 1], 1000, i, hermite_coeffs, 1)
     stepsize_vals_fourth.append(stepsize_vals_fourth_i)
     err_vals_fourth.append(err_vals_fourth_i)
 
