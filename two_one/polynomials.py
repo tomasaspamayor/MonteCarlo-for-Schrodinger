@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 def polynomial(x, coeff):
     """
@@ -17,5 +16,3 @@ def polynomial(x, coeff):
     terms_array = np.array(terms)
     poly = np.sum(terms_array)
     return poly
-
-

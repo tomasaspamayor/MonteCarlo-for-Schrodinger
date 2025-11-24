@@ -1,8 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
-import polynomials as poly
-import differentiators as diff
-import errors as err
+import two_one.differentiators as diff
 
 def local_energy(stepsize, range_val, samples_num, coeffs, level, method, plot=False):
     """
@@ -14,6 +11,7 @@ def local_energy(stepsize, range_val, samples_num, coeffs, level, method, plot=F
     level - (int): Order of the Hermite Polynomial [0 -> 4].
     method - (bool): Whether to use fourth order truncation (==1) or second (else).
     """
+    coeffs = coeffs[level]
     if method == 1:
         x_vals, y_vals_first, other = diff.fd_fourth(stepsize, range_val, samples_num, coeffs)
     else:

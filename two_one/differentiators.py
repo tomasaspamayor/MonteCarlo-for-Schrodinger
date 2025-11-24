@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import polynomials as poly
+import two_one.polynomials as poly
 
 def fd_second(stepsize, range_val, samples_num, coeffs):
     """
@@ -71,7 +71,7 @@ def fd_fourth(stepsize, range_val, samples_num, coeffs):
 
     return samples_inner, terms, sec_der_vals
 
-def analytical_second_der(x, coeffs, plot):
+def analytical_second_der(x, coeffs, level, plot):
     """
     Returns the values computed from the analytical calculation of the
     second derivative of any polynomial.
@@ -80,12 +80,13 @@ def analytical_second_der(x, coeffs, plot):
     x  - (list): The array you wish to calculate the derivative at.
     coeffs - (list): The coefficients in increasing order of monomial.
     """
-    n = len(coeffs)
-    func_vals = np.polyval(coeffs[::-1], x)
+    current_coeffs = coeffs[level]
+    n = len(current_coeffs)
+    func_vals = np.polyval(current_coeffs[::-1], x)
     
     sec_der_vals_exact = np.zeros_like(x, dtype=float)
     for i in range(2, n):
-        sec_der_vals_exact += i * (i - 1) * coeffs[i] * (x ** (i - 2))
+        sec_der_vals_exact += i * (i - 1) * current_coeffs[i] * (x ** (i - 2))
     terms = -0.5 * sec_der_vals_exact / func_vals
 
     if plot == True:
