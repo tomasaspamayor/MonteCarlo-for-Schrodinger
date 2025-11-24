@@ -129,10 +129,10 @@ def plot_samples(pdf, x_vals, samples, bins):
 
     plt.hist(samples, bins, density=True, label='Samples')
     plt.plot(x_array, y_array, label='PDF')
-    plt.grid()
     plt.title('Sampling of PDF (Rejection Method)')
     plt.xlabel('x')
     plt.ylabel('y')
+    plt.legend()
     plt.show()
 
 ## I will also define some normalised PDFs to check the methods:

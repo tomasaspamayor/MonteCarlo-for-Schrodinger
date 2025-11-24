@@ -3,7 +3,6 @@
 ## in other files.
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import two_one.errors as err
 import two_one.local_energy as le
@@ -62,24 +61,10 @@ err_vals_fourth = np.array(err_vals_fourth)
 
 #%% 2.2
 
-samples_gaussian = samp.rejection_sampling(samp.normalized_gaussian, 1, -1, 1, 100000, 1e8)
-samples_exponential = samp.rejection_sampling(samp.normalized_exponential, 1, 0, 1, 100000, 1e8)
+samples_gaussian = samp.rejection_sampling(samp.normalized_gaussian, 1, -1, 1, 10000, 1e8)
+samples_exponential = samp.rejection_sampling(samp.normalized_exponential, 1, 0, 1, 10000, 1e8)
 
-x_gauss_vals = np.linspace(-1, 1, 1000)
-x_expo_vals = np.linspace(0, 1, 1000)
-gauss_vals = samp.normalized_gaussian(x_gauss_vals)
-expo_vals = samp.normalized_exponential(x_expo_vals)
-
-plt.hist(samples_gaussian, 50, density=True, label='Generated Samples')
-plt.plot(x_gauss_vals, gauss_vals, label='PDF')
-plt.title('Gaussian PDF Sampling')
-plt.legend()
-plt.show()
-
-plt.hist(samples_exponential, 50, density=True, label='Generated Samples')
-plt.plot(x_expo_vals, expo_vals, label='PDF')
-plt.title('Exponential PDF Sampling')
-plt.legend()
-plt.show()
+samp.plot_samples(samp.normalized_gaussian, [-1, 1], samples_gaussian, 50)
+samp.plot_samples(samp.normalized_exponential, [0, 1], samples_exponential, 50)
 
 # %%
