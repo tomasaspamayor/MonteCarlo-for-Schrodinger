@@ -66,12 +66,13 @@ def rejection_sampling_3d(pdf, cf, start, end, num_samples, n, constant=1, m=10)
 
     Args:
     PDF (func) - A callable PDF function (1D).
+    CF (func) - A callable comparison function (1D).
     start (list) - Startpoint for each dimension.
     end (float) - Endpoint for each dimension.
     num_samples (int) - The desired number of points in the final sample.
-    N (int) - Upper bound for the sampling loop.
+    n (int) - Upper bound for the sampling loop.
     constant (bool) - Option to use a constant CF.
-    M (float) - Scaling of the CF. Only used in constant CFs.
+    m (float) - Scaling of the CF. Only used in constant CFs.
     """
 
     x_start, x_end = start[0], end[0]
@@ -115,7 +116,88 @@ def rejection_sampling_3d(pdf, cf, start, end, num_samples, n, constant=1, m=10)
 
     return samples
 
-def plot_samples(pdf, x_vals, samples, bins):
+def metropolis_hastings(pdf, start, domain, stepsize, num_samples, burnin_val=1000):
+    """Generate an array of sample points which follow a PDF of choice. This is computed
+    following the Metropolis-Hastings (MCMC) algorithm.
+
+    Args:
+    PDF (func) - A callable PDF function (1D).
+    start (float) - Startpoint in the range.
+    stepsize (float) - Value of move by iteration.
+    num_samples (int) - The desired number of points in the final sample.
+    burnin_val (int) - The needed number of rejected samples by the algorithm.
+    """
+    state = start
+    samples = []
+
+    def proposal(current_state):
+        candidate = current_state + np.random.normal(0, stepsize)
+        while candidate < domain[0] or candidate > domain[1]:
+            if candidate < domain[0]:
+                candidate = 2 * domain[0] - candidate
+            if candidate > domain[1]:
+                candidate = 2 * domain[1] - candidate
+        return candidate
+
+    iterations = num_samples + burnin_val
+    for i in range(iterations):
+        candidate = proposal(state)
+        ratio = pdf(candidate) / pdf(state)
+        alpha = np.min([1, ratio])
+        u = np.random.random()
+
+        if u <= alpha:
+            state = candidate
+        if i >= burnin_val:
+            samples.append(state)
+
+    samples = np.array(samples)
+
+    return samples
+
+def metropolis_hastings_3d(pdf, start, domain, stepsize, num_samples, burnin_val=1000):
+    """Generate an array of sample points which follow a PDF of choice. This is computed
+    following the Metropolis-Hastings (MCMC) algorithm.
+
+    Args:
+    PDF (func) - A callable PDF function (3D).
+    start (list) - Startpoint for each dimension.
+    domain (list) - The range for each dimension (start and end points).
+    stepsize (list) - Value of move by iteration for each dimension.
+    num_samples (int) - The desired number of points in the final sample.
+    burnin_val (int) - The needed number of rejected samples by the algorithm.
+    """
+    state = np.array(start, dtype=float)
+    dimensions = len(domain)
+    samples = []
+
+    def proposal(current_state):
+        candidate = current_state + np.random.normal(0, stepsize)
+        for d in range(dimensions):
+            while candidate[d] < domain[d][0] or candidate[d] > domain[d][1]:
+                if candidate[d] < domain[d][0]:
+                    candidate[d] = 2 * domain[d][0] - candidate[d]
+                if candidate[d] > domain[d][1]:
+                    candidate[d] = 2 * domain[d][1] - candidate[d]
+        return candidate
+
+    iterations = num_samples + burnin_val
+    for i in range(iterations):
+        candidate = proposal(state)
+        ratio = pdf(candidate) / pdf(state)
+        alpha = np.min([1, ratio])
+        u = np.random.random()
+
+        if u <= alpha:
+            state = candidate
+        if i >= burnin_val:
+            samples.append(state)
+
+    samples = np.array(samples)
+
+    return samples
+
+def plot_samples(pdf, x_vals, samples, bins, method_num):
     """
     Plot the sampled array in a histogram with the original PDF.
 
@@ -123,13 +205,21 @@ def plot_samples(pdf, x_vals, samples, bins):
     PDF (func) - The PDF function which was sampled.
     x_vals (list) - The start and end point of the sampling.
     bins (int) - Number of bins in the histogram.
+    method_num (bool) - Gives the label for the correct method:
+                        0 --> Rejection Method
+                        1 --> Metropolis-Hastings Algorithm
     """
     x_array = np.linspace(x_vals[0], x_vals[1], 1000)
     y_array = pdf(x_array)
 
+    if method_num == 0:
+        method = "Rejection Method"
+    else:
+        method = "Metropolis-Hastings Algorithm"
+
     plt.hist(samples, bins, density=True, label='Samples')
     plt.plot(x_array, y_array, label='PDF')
-    plt.title('Sampling of PDF (Rejection Method)')
+    plt.title(f'Sampling of PDF ({method})')
     plt.xlabel('x')
     plt.ylabel('y')
     plt.legend()
@@ -139,7 +229,6 @@ def plot_samples(pdf, x_vals, samples, bins):
 
 def normalized_gaussian(x, sigma=0.2):
     """Gaussian normalized over [-1, 1]"""
-    # Compute normalization factor
     norm_factor = norm.cdf(1, scale=sigma) - norm.cdf(-1, scale=sigma)
     return (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-x**2 / (2 * sigma**2)) / norm_factor
 
@@ -147,6 +236,5 @@ def normalized_exponential(x, lambd=2.0):
     """Exponential decay normalized over [0, 1]"""
     if lambd <= 0:
         raise ValueError("Lambda must be positive")
-    # CORRECTED normalization factor
-    norm_factor = 1 - np.exp(-lambd * 1)  # This was the error!
+    norm_factor = 1 - np.exp(-lambd * 1)
     return (lambd * np.exp(-lambd * x)) / norm_factor
