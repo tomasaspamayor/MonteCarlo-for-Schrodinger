@@ -21,33 +21,26 @@ hermite_coeffs = [
     [12, 0, -48, 0, 16],       # n=4
     [0, 120, 0, -160, 0, 32],  # n=5
     [-120, 0, 720, 0, -480, 0, 64]  ] # n=6
+polys = len(hermite_coeffs)
 
 #%% 2.1
 
 # Numerical evalutation of the local energies with both 2nd and 4th order truncation:
 num_hermite = len(hermite_coeffs)
+x_example = np.linspace(-4, 4, 1000)
 
-x_vals_second_le = []
-local_energy_second_vals = []
-x_vals_fourth_le = []
-local_energy_fourth_vals = []
-
-for i in range(num_hermite):
-    x_vals_le_second_i, local_energy_vals_second_i = le.local_energy(0.01,
-                                [-1, 1], 1000, hermite_coeffs, i, 0, plot=True)
-    x_vals_second_le.append(x_vals_le_second_i)
-    local_energy_second_vals.append(local_energy_vals_second_i)
+x_vals_le = []
+local_energy_vals = []
 
 for i in range(num_hermite):
-    x_vals_le_fourth_i, local_energy_vals_fourth_i = le.local_energy(0.01,
-                                [-1, 1], 1000, hermite_coeffs, i, 1, plot=True)
-    x_vals_fourth_le.append(x_vals_le_fourth_i)
-    local_energy_fourth_vals.append(local_energy_vals_fourth_i)
+    for j in range(5):
+        x_vals_le_second_i, local_energy_vals_second_i = le.local_energy(x_example, 0.01,
+                                                        hermite_coeffs, i, i, plot=True)
+        x_vals_le.append(x_vals_le_second_i)
+        local_energy_vals.append(local_energy_vals_second_i)
 
-x_vals_second_le = np.array(x_vals_second_le)
-local_energy_second_vals = np.array(local_energy_second_vals)
-x_vals_fourth_le = np.array(x_vals_fourth_le)
-local_energy_fourth_vals = np.array(local_energy_fourth_vals)
+x_vals_le = np.array(x_vals_le)
+local_energy_vals = np.array(local_energy_vals)
 
 # Calculating the RMS error on these calculations:
 
@@ -85,11 +78,21 @@ samples_gaussian_mh_3d = samp.metropolis_hastings_3d(pdfs.gaussian_3d, [0, 0, 0]
 samp.plot_3d_samples(samples_gaussian_r_3d, 40, 0)
 samp.plot_3d_samples(samples_gaussian_mh_3d, 40, 1)
 
-polys = len(hermite_coeffs)
 
+#%% Passing through the local energy function:
+wf_samples = []
 for n in range(polys):
     pdf_qo = partial(pdfs.wf_pdf, n=n, coeffs=hermite_coeffs)
-    samples_wf_r = samp.rejection(pdf_qo, 0, -5, 5.1, 10000, 100000, m=None)
-    samp.plot_samples(pdf_qo, [-5,5.1], samples_wf_r, 150, 0)
+    samples_wf_r = samp.rejection(pdf_qo, 0, -3, 3.1, 10000, 1000000, m=None)
+    #samp.plot_samples(pdf_qo, [-5,5.1], samples_wf_r, 150, 0)
+    wf_samples.append(samples_wf_r)
+
+energies = []
+for i in range(polys):
+    x_values, local_energies = le.local_energy(wf_samples[i], 0.01, hermite_coeffs, i, 10)
+    le.plot_local_energies(local_energies, 200, i, 8)
+    energy_i = np.sum(local_energies) / len(local_energies)
+    energies.append(energy_i)
+
 
 # %%
