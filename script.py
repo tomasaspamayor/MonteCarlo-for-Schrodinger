@@ -20,7 +20,7 @@ hermite_coeffs = [
     [0, -12, 0, 8],            # n=3
     [12, 0, -48, 0, 16],       # n=4
     [0, 120, 0, -160, 0, 32],  # n=5
-    [-120, 0, 720, 0, -480, 0, 64]  # n=6
+    [-120, 0, 720, 0, -480, 0, 64]  ] # n=6
 
 #%% 2.1
 
@@ -84,14 +84,12 @@ samples_gaussian_mh_3d = samp.metropolis_hastings_3d(pdfs.gaussian_3d, [0, 0, 0]
 
 samp.plot_3d_samples(samples_gaussian_r_3d, 40, 0)
 samp.plot_3d_samples(samples_gaussian_mh_3d, 40, 1)
-]
+
 polys = len(hermite_coeffs)
 
 for n in range(polys):
     pdf_qo = partial(pdfs.wf_pdf, n=n, coeffs=hermite_coeffs)
     samples_wf_r = samp.rejection(pdf_qo, 0, -5, 5.1, 10000, 100000, m=None)
     samp.plot_samples(pdf_qo, [-5,5.1], samples_wf_r, 150, 0)
-
-
 
 # %%
