@@ -9,6 +9,12 @@ def normalized_gaussian(x, sigma=0.2):
     norm_factor = norm.cdf(1, scale=sigma) - norm.cdf(-1, scale=sigma)
     return (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-x**2 / (2 * sigma**2)) / norm_factor
 
+def gaussian_3d(xyz, sigma=0.2):
+    """3D Gaussian"""
+    x, y, z = xyz
+    r_squared = x**2 + y**2 + z**2
+    return np.exp(-r_squared / (2 * sigma**2))
+
 def normalized_exponential(x, lambd=2.0):
     """Exponential decay normalized over [0, 1]"""
     if lambd <= 0:
@@ -17,23 +23,14 @@ def normalized_exponential(x, lambd=2.0):
     return (lambd * np.exp(-lambd * x)) / norm_factor
 
 def wf_pdf(x, n, coeffs):
-    """
-    Return the wavefunction PDF value at a given position in 1D space.
-
-    Args:
-    R (float) - The position in 1D space.
-    n (int) - Order of the Hermite polynomial.
-    coeffs (list) - List of lists of the Hermite coefficients in increasing order.
-    """
-    norm_term = np.sqrt(np.pi) * (2 ** n) * math.factorial(n)
-
-    poly_val = poly.polynomial(x, coeffs[n])
-    expo_val = np.e ** (- (x ** 2) / 2)
-    wavefunction_val = poly_val * expo_val
-
-    density_func = (wavefunction_val ** 2) / norm_term
-
-    return density_func
+    x = np.asarray(x)    
+    if x.ndim == 0:
+        H_n = poly.polynomial(x, coeffs[n])
+    else:  # array
+        H_n = np.array([poly.polynomial(xi, coeffs[n]) for xi in x])
+    normalization = 1.0 / np.sqrt((2 ** n) * math.factorial(n) * np.sqrt(np.pi))
+    wavefunction = H_n * np.exp(-x**2 / 2) * normalization
+    return wavefunction ** 2
 
 def wf_3d(*args, n, coeffs):
     """
@@ -52,4 +49,3 @@ def wf_3d(*args, n, coeffs):
     pdf_val = pdf_x * pdf_y * pdf_z
 
     return pdf_val
-

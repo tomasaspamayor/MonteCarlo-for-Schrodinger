@@ -58,60 +58,77 @@ def rejection(pdf, cf, start, end, num_samples, max_iterations, constant=1, m=10
 
     return samples
 
-def rejection_3d(pdf, cf, start, end, num_samples, n, constant=1, m=10):
+def rejection_3d(pdf, cf, boundaries, num_samples, max_iterations, constant=1, m=None):
     """"
     Generate an array of sample points which follow a PDF of choice. This is computed
     following the acceptance-rejection algorithm.
 
     Args:
     PDF (func) - A callable PDF function (1D).
-    CF (func) - A callable comparison function (1D).
-    start (list) - Startpoint for each dimension.
-    end (float) - Endpoint for each dimension.
+    boundaries (list) - List of the boundaries for each dimension
     num_samples (int) - The desired number of points in the final sample.
-    n (int) - Upper bound for the sampling loop.
+    max_iterations (int) - Maximum number of iterations.
     constant (bool) - Option to use a constant CF.
-    m (float) - Scaling of the CF. Only used in constant CFs.
+    M (float) - Scaling of the CF. Only used in constant CFs.
     """
 
-    x_start, x_end = start[0], end[0]
-    y_start, y_end = start[1], end[1]
-    z_start, z_end = start[2], end[2]
+    x_start = boundaries[0][0]
+    x_end = boundaries[0][1]
+    y_start = boundaries[1][0]
+    y_end = boundaries[1][1]
+    z_start = boundaries[2][0]
+    z_end = boundaries[2][1]
 
-    if constant == 1:
-        # Generate the simplest proposal function, a constant:
-        q = 1 / ((x_end - x_start) * (y_end - y_start) * (z_end - z_start))
+    points_grid = 15
+    x_test = np.linspace(x_start, x_end, points_grid)
+    y_test = np.linspace(y_start, y_end, points_grid)
+    z_test = np.linspace(z_start, z_end, points_grid)
+
+    # Calculate M automatically if not provided:
+    if constant == 1 and m is None:
+        pdf_max = 0
+        for x in x_test:
+            for y in y_test:
+                for z in z_test:
+                    pdf_val = pdf([x, y, z])
+                    pdf_max = max(pdf_max, pdf_val)
+
+        q = 1 / ( (x_end - x_start) * (y_end - y_start) * (z_end - z_start) )
+        m = pdf_max / q * 1.1 # Buffering.
+        print(f"Calculated m {m}")
+        constant_cf = m * q
+    else:
+        q = 1 / ( (x_end - x_start) * (y_end - y_start) * (z_end - z_start) )
         constant_cf = m * q
 
-    # Create an empty list for the distribution:
     distribution = []
 
-    for i in range(n):
+    iterations = 0
+    while len(distribution) < num_samples and iterations < max_iterations:
         x_val = np.random.uniform(x_start, x_end)
         y_val = np.random.uniform(y_start, y_end)
         z_val = np.random.uniform(z_start, z_end)
-
-        pdf_val = pdf(x_val, y_val, z_val)
+        point_val = [x_val, y_val, z_val]
+        pdf_val = pdf(point_val)
 
         if constant == 1:
             cf_val = constant_cf
         else:
-            cf_val = cf(x_val, y_val, z_val)
+            cf_val = cf([x_val, y_val, z_val])
 
         if pdf_val > cf_val:
-            raise ValueError('The CF must enclose the PDF for all values (repick M)')
+            raise ValueError('The CF must enclose the PDF for all values (repick M).')
 
         u = np.random.uniform(0, 1)
         if u < (pdf_val / cf_val):
-            distribution.append([x_val, y_val, z_val])
+            distribution.append(point_val)
 
-        if len(distribution) == num_samples:
-            break
+        iterations += 1
 
     samples = np.array(distribution)
 
     if len(samples) < num_samples:
-        raise ValueError('Not all samples were generated.')
+        raise ValueError(f'Only generated {len(samples)} / {num_samples} after {iterations} iterations.')
 
     return samples
 
@@ -160,24 +177,25 @@ def metropolis_hastings_3d(pdf, start, domain, stepsize, num_samples, burnin_val
 
     Args:
     PDF (func) - A callable PDF function (3D).
-    start (list) - Startpoint for each dimension.
-    domain (list) - The range for each dimension (start and end points).
-    stepsize (list) - Value of move by iteration for each dimension.
+    start (list) - Startpoint in the range (for each dimension).
+    stepsize (list) - Value of move by iteration (for each dimension).
     num_samples (int) - The desired number of points in the final sample.
     burnin_val (int) - The needed number of rejected samples by the algorithm.
     """
-    state = np.array(start, dtype=float)
-    dimensions = len(domain)
+    state = start
+    dimensions = 3
     samples = []
+
+    if np.isscalar(stepsize):
+        stepsize = np.full(dimensions, stepsize)
+    else:
+        stepsize = np.array(stepsize)
 
     def proposal(current_state):
         candidate = current_state + np.random.normal(0, stepsize)
         for d in range(dimensions):
-            while candidate[d] < domain[d][0] or candidate[d] > domain[d][1]:
-                if candidate[d] < domain[d][0]:
-                    candidate[d] = 2 * domain[d][0] - candidate[d]
-                if candidate[d] > domain[d][1]:
-                    candidate[d] = 2 * domain[d][1] - candidate[d]
+            bottom, top = domain[d]
+            candidate[d] = np.clip(candidate[d], bottom, top)
         return candidate
 
     iterations = num_samples + burnin_val
@@ -201,7 +219,7 @@ def plot_samples(pdf, x_vals, samples, bins, method_num):
     Plot the sampled array in a histogram with the original PDF.
 
     Args:
-    PDF (func) - The PDF function which was sampled.
+    PDF (func) - The PDF function which was sampled (1D).
     x_vals (list) - The start and end point of the sampling.
     bins (int) - Number of bins in the histogram.
     method_num (bool) - Gives the label for the correct method:
@@ -224,3 +242,45 @@ def plot_samples(pdf, x_vals, samples, bins, method_num):
     plt.legend()
     plt.show()
 
+def plot_3d_samples(samples, bins, method_num):
+    """
+    Plot 2D projections of 3D samples.
+    
+    Args:
+        samples: array with shape (num_samples, 3) - each row is [x,y,z]
+        bins: number of bins for histograms
+        method_num: 0 for Rejection, 1 for Metropolis-Hastings
+    """
+    
+    if method_num == 0:
+        method = "Rejection Method"
+    else:
+        method = "Metropolis-Hastings Algorithm"
+
+    samples_t = samples.T
+    
+    plt.figure(figsize=(15, 5))
+    
+    plt.subplot(131)
+    plt.hist2d(samples_t[0], samples_t[1], bins=bins, density=True)
+    plt.colorbar(label='Density')
+    plt.xlabel('X samples')
+    plt.ylabel('Y samples')
+    plt.title(f'X-Y Projection - {method}')
+    
+    plt.subplot(132)
+    plt.hist2d(samples_t[0], samples_t[2], bins=bins, density=True)
+    plt.colorbar(label='Density')
+    plt.xlabel('X samples')
+    plt.ylabel('Z samples')
+    plt.title(f'X-Z Projection - {method}')
+    
+    plt.subplot(133)
+    plt.hist2d(samples_t[1], samples_t[2], bins=bins, density=True)
+    plt.colorbar(label='Density')
+    plt.xlabel('Y samples')
+    plt.ylabel('Z samples')
+    plt.title(f'Y-Z Projection - {method}')
+    
+    plt.tight_layout()
+    plt.show()
