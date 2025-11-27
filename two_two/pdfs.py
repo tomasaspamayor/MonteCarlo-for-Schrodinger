@@ -23,14 +23,16 @@ def normalized_exponential(x, lambd=2.0):
     return (lambd * np.exp(-lambd * x)) / norm_factor
 
 def wf_pdf(x, n, coeffs):
-    x = np.asarray(x)    
+    x = np.asarray(x)
     if x.ndim == 0:
         H_n = poly.polynomial(x, coeffs[n])
     else:  # array
         H_n = np.array([poly.polynomial(xi, coeffs[n]) for xi in x])
-    normalization = 1.0 / np.sqrt((2 ** n) * math.factorial(n) * np.sqrt(np.pi))
+    normalization = 1.0 / np.sqrt(2**n * math.factorial(n) * np.sqrt(np.pi))
     wavefunction = H_n * np.exp(-x**2 / 2) * normalization
-    return wavefunction ** 2
+    pdf = wavefunction ** 2
+    pdf = np.where(np.isfinite(pdf), pdf, 0.0)
+    return pdf
 
 def wf_3d(*args, n, coeffs):
     """

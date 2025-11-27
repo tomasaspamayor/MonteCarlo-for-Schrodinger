@@ -138,16 +138,16 @@ def fd_eighth(x_vals, wavefunction_vals, stepsize, coeffs, polynomial=True):
     sec_der_vals = []
     for i in range(4, n - 4):
         fpp = (
-            -9 * func_vals[i+4]
-            + 128 * func_vals[i+3]
-            - 1008 * func_vals[i+2]
-            + 8064 * func_vals[i+1]
-            - 14350 * func_vals[i]
-            + 8064 * func_vals[i-1]
-            - 1008 * func_vals[i-2]
-            + 128 * func_vals[i-3]
-            - 9 * func_vals[i-4]
-        ) / (5040 * stepsize**2)
+            -1/560 * func_vals[i+4] 
+            + 8/315 * func_vals[i+3] 
+            - 1/5 * func_vals[i+2] 
+            + 8/5 * func_vals[i+1] 
+            - 205/72 * func_vals[i] 
+            + 8/5 * func_vals[i-1] 
+            - 1/5 * func_vals[i-2] 
+            + 8/315 * func_vals[i-3] 
+            - 1/560 * func_vals[i-4]
+        ) / (stepsize**2)
         sec_der_vals.append(fpp)
     sec_der_vals = np.array(sec_der_vals)
 
