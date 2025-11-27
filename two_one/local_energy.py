@@ -54,7 +54,7 @@ def local_energy(x_vals, stepsize, coeffs, level, method):
 
     return x_filtered, l_energy
 
-def analytical_local_energy(x, coeffs, n):
+def analytical_local_energy_hermite(x, coeffs, n):
     """"
     Calculate the analytical local energy of the system (solve the Schrödinger Eq.)
 
@@ -86,6 +86,12 @@ def analytical_local_energy(x, coeffs, n):
     l_e = -0.5 * wf_second_der / wf + 0.5 * x**2
 
     return l_e
+
+def analytical_local_energy_wf(x, func, sec_der, theta):
+    """
+    Returns the analitical local energy of the 3D wavefunction.
+    """
+    return -0.5 * (1 / func(x, theta)) * sec_der(x, theta) + 0.5 * x ** 2
 
 def plot_local_energies(energy_vals, bins, order, truncation):
     """Plot the local energy values."""

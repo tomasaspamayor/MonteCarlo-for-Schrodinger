@@ -33,21 +33,3 @@ def wf_pdf(x, n, coeffs):
     pdf = wavefunction ** 2
     pdf = np.where(np.isfinite(pdf), pdf, 0.0)
     return pdf
-
-def wf_3d(*args, n, coeffs):
-    """
-    Returns the value of the 3D wavefunction density function.
-    
-    """
-    if len(args) == 1:
-        x, y, z = args[0]
-    else:
-        x, y, z = args
-
-    nx, ny, nz = n
-    pdf_x = wf_pdf(x, nx, coeffs)
-    pdf_y = wf_pdf(y, ny, coeffs)
-    pdf_z = wf_pdf(z, nz, coeffs)
-    pdf_val = pdf_x * pdf_y * pdf_z
-
-    return pdf_val

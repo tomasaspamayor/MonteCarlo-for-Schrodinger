@@ -1,7 +1,8 @@
-#%%
-## See the script to solve the different questions with the methods defined
-## in other files.
-
+"""
+See the script to solve the different questions with the methods defined
+in other files.
+"""
+#%% Imports and constants
 from functools import partial
 import numpy as np
 
@@ -11,17 +12,17 @@ import two_two.sampling as samp
 import two_two.pdfs as pdfs
 
 hermite_coeffs = [
-    [1],                       # n=0
-    [0, 2],                    # n=1
-    [-2, 0, 4],                # n=2
-    [0, -12, 0, 8],            # n=3
-    [12, 0, -48, 0, 16],       # n=4
-    [0, 120, 0, -160, 0, 32],  # n=5
-    [-120, 0, 720, 0, -480, 0, 64]  ] # n=6
+    [1],
+    [0, 2],
+    [-2, 0, 4],
+    [0, -12, 0, 8],
+    [12, 0, -48, 0, 16],
+    [0, 120, 0, -160, 0, 32],
+    [-120, 0, 720, 0, -480, 0, 64]  ]
 
 P = len(hermite_coeffs)
 
-#%% 2.1
+#%% 2.1 - Local Energy
 
 # Numerical evalutation of the local energies with both 2nd and 4th order truncation:
 H_N = len(hermite_coeffs)
@@ -55,7 +56,7 @@ _, err_vals_tenth = err.err_finite_diff([1e-4, 0.01], 500,
 
 err.plot_err_methods([1e-4, 0.01], 500, [-1, 1], 1000, hermite_coeffs)
 
-#%% 2.2
+#%% 2.2 - Sampling & Eingenvalues
 
 samples_gaussian_r = samp.rejection(pdfs.normalized_gaussian, 1, -1, 1, 100000, 1e8)
 samples_exponential_r = samp.rejection(pdfs.normalized_exponential, 1, 0, 1, 100000, 1e8)
@@ -95,4 +96,7 @@ for k in range(P):
     energy_k_mh = np.sum(local_energies_mh) / len(local_energies_mh)
     print(f'The local energy for the wavefunction of order {k} is {energy_k_mh} (Metropolis-Hastings Algorithm Sampling)')
 
-# %%
+#%% 3 - Hydrogen Ground State
+
+
+
