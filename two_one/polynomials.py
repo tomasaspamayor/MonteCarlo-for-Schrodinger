@@ -1,3 +1,7 @@
+"""
+Defines polynomial evaluation.
+"""
+
 import numpy as np
 
 def polynomial(x, coeff):
@@ -5,8 +9,11 @@ def polynomial(x, coeff):
     Creates a polynomial by summing monomials with specified coefficients.
 
     Args:
-    x - (float): The independent variable value
-    coeff - (list): The coefficients in increasing order of monomial.
+    x (float): The independent variable value
+    coeff (list): The coefficients in increasing order of monomial.
+
+    Returns:
+    float: Polynomial value at each point.
     """
     n = len(coeff)
     terms = []

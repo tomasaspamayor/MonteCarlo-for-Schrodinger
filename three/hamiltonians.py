@@ -4,63 +4,35 @@ Hold the different Hamiltonians used throughout the project.
 
 import numpy as np
 
-import two_one.local_energy as le
-
-def wavefunction(point, theta):
+def energy_expectation(points, theta):
     """
-    Returns the wavefunction ansatz value.
+    Energy expectation for hydrogen ground state.
 
     Args:
-    r (list) - Position at which to calculate it (3D).
-    theta (float) - Parameter
+    points (list): The 3D points at which to evaluate the energy. 
+    theta (float): The parameter for the wavefunction
     """
-    r = np.sqrt(point[0] ** 2 + point[1] ** 2 + point[3] ** 2)
-    return np.e ** (-theta * r)
+    r = np.linalg.norm(points, axis=1)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        local_energies = -0.5 * (theta ** 2 - 2 * theta / r) - 1.0 / r
+        local_energies = np.nan_to_num(local_energies, nan=-0.5*theta**2)
 
-def dtheta_wavefunction(point, theta):
-    """
-    Returns the value of the ansatz's derivative with respect to the parameter.
+    return np.mean(local_energies)
 
-    Args:
-    r (list) - Position at which to calculate it (3D).
-    theta (float) - Parameter
+def energy_expectation_theta_derivative(points, theta):
     """
-    r = np.sqrt(point[0] ** 2 + point[1] ** 2 + point[3] ** 2)
-    return - r * np.e ** (-theta * r)
-
-def wavefunction_secder(point, theta):
-    """
-    Returns the Laplacian of the wavefunction.
+    Derivative of the energy expectation with respect to theta for hydrogen 
+    ground state.
 
     Args:
-    point (list) - Poistion at which to evaluate
-    theta (float) - Parameter
+    points (list): The 3D points at which to evaluate the energy. 
+    theta (float): The parameter for the wavefunction
     """
-    r = np.sqrt(point[0] ** 2 + point[1] ** 2 + point[3] ** 2)
-    return - (theta / r) * np.e**(-theta * r) * (point[0] + point[1] + point[2])
+    r = np.linalg.norm(points, axis=1)
 
-def hydrogen_groundstate(x, theta):
-    """
-    Calculates the energy expectation values from the local energy
+    local_energies = -0.5 * (theta ** 2 - 2 * theta / r) - 1.0 / r
+    e_avg = np.mean(local_energies)
+    dlnpsi_dtheta = - r
+    grad_e = 2 * (np.mean(local_energies * dlnpsi_dtheta) - e_avg * np.mean(dlnpsi_dtheta))
 
-    Args:
-    x (list) - Point or array of points where the energy must be calculated.
-    theta (float) - Parameter
-    """
-    n = len(x)
-    energy = (1 / n) * np.sum(le.analytical_local_energy_wf(x, wavefunction, wavefunction_secder, theta))
-    return energy
-
-def gradtheta_hydrogen_groundstate(x, theta):
-    """
-    Calculates the gradient of the energy expecation value from the local energy.
-
-    Args:
-    x (list) - Point or array of points where the energy must be calculated.
-    theta (float) - Parameter
-    """
-    n = len(x)
-    term = (le.analytical_local_energy_wf(x, wavefunction, wavefunction_secder, theta) - hydrogen_groundstate(x, theta)) * (dtheta_wavefunction(x, theta) / wavefunction(x, theta))
-    grad_energy = (2 / n) * np.sum(term)
-
-    return grad_energy
+    return grad_e

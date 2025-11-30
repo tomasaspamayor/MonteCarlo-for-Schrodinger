@@ -1,103 +1,106 @@
-import math
+"""
+Calculate a variety of different local energies for a QHO system and a
+Hydrogen ground state system. Since the Schrödinger equation is different
+for the two, they must be used carefully.
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 import two_one.differentiators as diff
+import two_two.pdfs as pdfs
 
-def wavefunction(x, coeffs):
-    """ Calculates wavefunction values.
+def local_energy_qho_numerical(x_samples, h, coeffs, level, method=None):
+    """
+    Compute the local energy for the QHO using numerical derivatives at each
+    sample point.
+    
     Args:
-    x (float / list) - Points at which to evaluate the wavefunction.
-    coeffs (list) - increasing order coefficients of the polynomial.
-    """
-    # coeffs are assumed lowest-first: [a0, a1, ..., an]
-    H_n = np.polynomial.polynomial.polyval(x, coeffs)
-    n = len(coeffs) - 1
-    normalization = 1.0 / np.sqrt(2**n * math.factorial(n) * np.sqrt(math.pi))
-    return normalization * H_n * np.exp(-x**2 / 2)
+    x_samples (array): Random samples from the wavefunction PDF
+    h (float): Stepsize for finite differences
+    coeffs (list): Hermite polynomial coefficients
+    level (int): Order of Hermite polynomial
+    method (int): Finite difference method (2=2nd order, 4=4th order, etc.)
 
-def local_energy(x_vals, stepsize, coeffs, level, method):
+    Returns:
+    np.array: Array with all the calculated local energies
+    float: Mean local energy
     """
-    Compute the local energy of a specific wavefunction.
+    local_energies = []
+
+    psi_values = pdfs.wavefunction_qho(x_samples, coeffs[level])
+
+    if method == 2:  # Second order
+        psi_double_prime = diff.cdm_step_second(x_samples, pdfs.wavefunction_qho, h, coeffs, level)
+
+    elif method == 4:  # Fourth order
+        psi_double_prime = diff.cdm_step_fourth(x_samples, pdfs.wavefunction_qho, h, coeffs, level)
+
+    elif method == 6:  # Sixth order
+        psi_double_prime = diff.cdm_step_sixth(x_samples, pdfs.wavefunction_qho, h, coeffs, level)
+
+    elif method == 10:  # Tenth order
+        psi_double_prime = diff.cdm_step_tenth(x_samples, pdfs.wavefunction_qho, h, coeffs, level)
+
+    else:  # Eigth order - Predefined.
+        psi_double_prime = diff.cdm_step_eighth(x_samples, pdfs.wavefunction_qho, h, coeffs, level)
+
+    s = len(x_samples)
+    for i in range(s):
+        psi = psi_values[i]
+        psi_dd = psi_double_prime[i]
+        x = x_samples[i]
+
+        if abs(psi) > 1e-12:
+            local_energy_val = -0.5 * psi_dd / psi + 0.5 * x ** 2
+            local_energies.append(local_energy_val)
+        else:
+            epsilon = 1e-12
+            if abs(psi) > epsilon:
+                safe_psi = psi
+            elif psi != 0:
+                safe_psi = epsilon * np.sign(psi)
+            else:
+                safe_psi = epsilon
+            local_energy_val = -0.5 * psi_dd / safe_psi + 0.5 * x ** 2
+            local_energies.append(local_energy_val)
+
+    local_energies = np.array(local_energies)
+    mean_local_energy = np.mean(local_energies)
+
+    return local_energies, mean_local_energy
+
+def local_energy_analytical(x, func, sec_der, theta):
+    """
+    Defines the analytical calculation for the wavefunction of the Hydrogen
+    Atom ground state.
 
     Args:
-    stepsize - (float): Stepsize at which to sample the FDM.
-    range_val - (list): Range of x-values at which evaluate the wavefunction.
-    level - (int): Order of the Hermite Polynomial [0 -> 4].
-    method - (bool): Whether to use fourth order truncation (==1) or second (else).
+    x (list): The points at which to compute the local energy.
+    func (callable): The wavefunction.
+    sec_der (callable): The wavefunction's second derivative.
+    theta (float): The wavefunction's parameter.
+
+    Returns:
+    np.array: Values for the local energy at all points.
     """
-    coeffs = coeffs[level]
-    wavefunction_vals = wavefunction(x_vals, coeffs)
-
-    if method == 1:
-        x_val_calc, sec_der_vals, wf_trimmed = diff.fd_second(x_vals, wavefunction_vals,
-                                                     stepsize, coeffs, polynomial=False)
-    elif method == 2:
-        x_val_calc, sec_der_vals, wf_trimmed = diff.fd_fourth(x_vals, wavefunction_vals,
-                                                     stepsize, coeffs, polynomial=False)
-    elif method == 3:
-        x_val_calc, sec_der_vals, wf_trimmed = diff.fd_sixth(x_vals, wavefunction_vals,
-                                                     stepsize, coeffs, polynomial=False)
-    elif method == 4:
-        x_val_calc, sec_der_vals, wf_trimmed = diff.fd_tenth(x_vals, wavefunction_vals,
-                                                     stepsize, coeffs, polynomial=False)
-    else:
-        x_val_calc, sec_der_vals, wf_trimmed = diff.fd_eighth(x_vals, wavefunction_vals,
-                                                     stepsize, coeffs, polynomial=False)
-
-    threshold = 1e-6
-    mask = np.abs(wf_trimmed) > threshold
-    x_filtered = x_val_calc[mask]
-    sec_der_filtered = sec_der_vals[mask] 
-    wf_filtered = wf_trimmed[mask]
-
-    l_energy = - 0.5 * sec_der_filtered / wf_filtered + 0.5 * (x_filtered ** 2)
-
-    return x_filtered, l_energy
-
-def analytical_local_energy_hermite(x, coeffs, n):
-    """"
-    Calculate the analytical local energy of the system (solve the Schrödinger Eq.)
-
-    Args:
-    x (list) - Array of points at which to evaluate the local energy
-    coeffs (list) - Coefficients of the Hermite polynomials
-    n (int) - Order of the Hermite Polys
-    """
-    x = np.array(x)
-    coeffs = coeffs[n]
-    coeffs_first_der = np.polyder(coeffs[::-1])[::-1]
-    coeffs_second_der = np.polyder(np.polyder(coeffs[::-1]))[::-1]
-
-    if len(coeffs_first_der) == 0:
-        coeffs_first_der = [0]
-    if len(coeffs_second_der) == 0:
-        coeffs_second_der = [0]
-
-    hermite_n = np.polynomial.polynomial.polyval(x, coeffs)
-    hermite_fd_n = np.polynomial.polynomial.polyval(x, coeffs_first_der)
-    hermite_sd_n = np.polynomial.polynomial.polyval(x, coeffs_second_der)
-
-    norm = 1.0 / np.sqrt(2**n * math.factorial(n) * np.sqrt(np.pi))
-
-    wf = norm * hermite_n * np.e**(-(x**2)/2)
-    wf_second_der = norm * (hermite_sd_n - 2 * x * hermite_fd_n
-                            + (x ** 2 - 1) * hermite_n ) * np.exp(- (x ** 2) / 2)
-
-    l_e = -0.5 * wf_second_der / wf + 0.5 * x**2
-
-    return l_e
-
-def analytical_local_energy_wf(x, func, sec_der, theta):
-    """
-    Returns the analitical local energy of the 3D wavefunction.
-    """
-    return -0.5 * (1 / func(x, theta)) * sec_der(x, theta) + 0.5 * x ** 2
+    vals = -0.5 * (1 / func(x, theta)) * sec_der(x, theta) + 0.5 * x ** 2
+    vals = np.array(vals)
+    return vals
 
 def plot_local_energies(energy_vals, bins, order, truncation):
-    """Plot the local energy values."""
+    """
+    Plot the local energy values in a histogram.
+    
+    Args:
+    energy_vals (list): The energy values obtained.
+    bins (int): Number of bins.
+    order (int): Order of the Hermite polynomial used.
+    truncation (int): Order of the truncation used.
+
+    Returns:
+    plt.plot: The resulting histogram.
+    """
     plt.hist(energy_vals, bins=bins, density=True, alpha=0.7)
 
-    # Reasonable limits for harmonic oscillator
     expected_energy = order + 0.5
     plt.xlim(expected_energy - 2, expected_energy + 2)
     plt.axvline(expected_energy, color='red', linestyle='--',

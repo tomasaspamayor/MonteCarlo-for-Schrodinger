@@ -1,35 +1,138 @@
+"""
+Define wavefunctions and PDFs used throughout the project.
+"""
+
 import math
 import numpy as np
 from scipy.stats import norm
 
 import two_one.polynomials as poly
 
+### First we define two sampling functions to try our algorithms over.
+
 def normalized_gaussian(x, sigma=0.2):
-    """Gaussian normalized over [-1, 1]"""
+    """
+    Returns the function values of a Gaussian, normalised over the range [-1, 1].
+
+    Args:
+    x (list): The sample points.
+    sigma (float): The width of the gaussian.
+
+    Returns:
+    np.array: Values of the Gaussian over the sample points.
+    """
     norm_factor = norm.cdf(1, scale=sigma) - norm.cdf(-1, scale=sigma)
-    return (1 / (sigma * np.sqrt(2 * np.pi))) * np.exp(-x**2 / (2 * sigma**2)) / norm_factor
+    vals = np.array((1 / (sigma * np.sqrt(2 * np.pi)))
+                    * np.exp(-x**2 / (2 * sigma**2)) / norm_factor)
+    return vals
 
 def gaussian_3d(xyz, sigma=0.2):
-    """3D Gaussian"""
+    """
+    Returns the function values of a 3D Gaussian.
+
+    Args:
+    x (list): The sample points.
+    sigma (float): The width of the gaussian.
+
+    Returns:
+    np.array: Values of the Gaussian over the sample points.
+    """
     x, y, z = xyz
     r_squared = x**2 + y**2 + z**2
-    return np.exp(-r_squared / (2 * sigma**2))
+    vals = np.array(np.exp(-r_squared / (2 * sigma**2)))
+
+    return vals
 
 def normalized_exponential(x, lambd=2.0):
-    """Exponential decay normalized over [0, 1]"""
+    """
+    Returns the function values of an exponential, normalised over the range [0, 1].
+
+    Args:
+    x (list): The sample points.
+    lambd (float): The decay rate of the exponential.
+
+    Returns:
+    np.array: Values of the exponential over the sample points.
+    """
     if lambd <= 0:
         raise ValueError("Lambda must be positive")
     norm_factor = 1 - np.exp(-lambd * 1)
-    return (lambd * np.exp(-lambd * x)) / norm_factor
+    vals = np.array((lambd * np.exp(-lambd * x)) / norm_factor)
 
-def wf_pdf(x, n, coeffs):
+    return vals
+
+### Now we define the different wavefunctions and their PDFs for the different
+### systems we work with.
+
+def wavefunction_qho(x, coeffs):
+    """
+    Calculate the QHO wavefunction.
+
+    Args:
+    x (list): Points at which to evaluate it.
+    coeffs (list): Hermite polynonial coefficients.
+
+    Returns:
+    np.array: The wavefunction values at the sample points.
+    """
+    normalization = 1.0 / np.sqrt(2 ** len(coeffs) * math.factorial(len(coeffs)
+                                                                    - 1) * np.sqrt(np.pi))
+    h_n = np.polynomial.polynomial.polyval(x, coeffs)
+    return h_n * np.exp(-x ** 2 / 2) * normalization
+
+def wavefunction_qho_pdf(x, n, coeffs):
+    """
+    Calculate the QHO wavefunction's PDF.
+
+    Args:
+    x (list): Points at which to evaluate it.
+    n (int): Order of the Hermite polynomials.
+    coeffs (list): Hermite polynonial coefficients.
+
+    Returns:
+    np.array: The wavefunction values at the sample points.
+    """
     x = np.asarray(x)
     if x.ndim == 0:
-        H_n = poly.polynomial(x, coeffs[n])
+        h_n = poly.polynomial(x, coeffs[n])
     else:  # array
-        H_n = np.array([poly.polynomial(xi, coeffs[n]) for xi in x])
+        h_n = np.array([poly.polynomial(xi, coeffs[n]) for xi in x])
     normalization = 1.0 / np.sqrt(2**n * math.factorial(n) * np.sqrt(np.pi))
-    wavefunction = H_n * np.exp(-x**2 / 2) * normalization
-    pdf = wavefunction ** 2
+    wavefunction_vals = h_n * np.exp(-x**2 / 2) * normalization
+    pdf = wavefunction_vals ** 2
     pdf = np.where(np.isfinite(pdf), pdf, 0.0)
+    pdf = np.array(pdf)
     return pdf
+
+def wavefunction_hydrogen_atom(samples, theta):
+    """
+    Calculate the hydrogen atom's wavefunction.
+
+    Args:
+    samples (list): The points (3D) at which to calculate the value.
+    theta (float): The wavefunction parameter.
+
+    Returns:
+    np.array: List of wavefunction values at the sample points.
+    """
+    r = np.linalg.norm(samples, axis=1)
+    vals = np.array(np.exp(-theta * r))
+
+    return vals
+
+def wavefunction_hydrogen_atom_pdf(point, theta):
+    """
+    Calculate the hydrogen atom's wavefunction PDF.
+
+    Args:
+    point (list): The points (3D) at which to calculate the value.
+    theta (float): The wavefunction parameter.
+
+    Returns:
+    np.array: List of wavefunction values at the sample points.
+    """
+    r = np.linalg.norm(point)
+    normalization = theta ** 3 / np.pi
+    vals = np.array(normalization * np.exp(-2 * theta * r))
+
+    return vals

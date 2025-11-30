@@ -1,3 +1,8 @@
+"""
+Define the two sampling algorithms used and allow their implementations both
+in 1D and 3D.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -7,13 +12,16 @@ def rejection(pdf, cf, start, end, num_samples, max_iterations, constant=1, m=10
     following the acceptance-rejection algorithm.
 
     Args:
-    PDF (func) - A callable PDF function (1D).
-    start (float) - Startpoint of the sample array.
-    end (float) - Endpoint of the sample array.
-    num_samples (int) - The desired number of points in the final sample.
-    N (int) - Upper bound for the sampling loop.
-    constant (bool) - Option to use a constant CF.
-    M (float) - Scaling of the CF. Only used in constant CFs.
+    PDF (func): A callable PDF function (1D).
+    start (float): Startpoint of the sample array.
+    end (float): Endpoint of the sample array.
+    num_samples (int): The desired number of points in the final sample.
+    N (int): Upper bound for the sampling loop.
+    constant (bool): Option to use a constant CF.
+    M (float): Scaling of the CF. Only used in constant CFs.
+
+    Returns:
+    np.array: The calculated samples following the PDF.
     """
 
     # Calculate M automatically if not provided:
@@ -54,7 +62,10 @@ def rejection(pdf, cf, start, end, num_samples, max_iterations, constant=1, m=10
     samples = np.array(distribution)
 
     if len(samples) < num_samples:
-        raise ValueError(f'Only generated {len(samples)} / {num_samples} after {iterations} iterations.')
+        raise ValueError(
+            f'Only generated {len(samples)} / {num_samples} '
+            f'after {iterations} iterations.'
+        )
 
     return samples
 
@@ -70,6 +81,9 @@ def rejection_3d(pdf, cf, boundaries, num_samples, max_iterations, constant=1, m
     max_iterations (int) - Maximum number of iterations.
     constant (bool) - Option to use a constant CF.
     M (float) - Scaling of the CF. Only used in constant CFs.
+
+    Returns:
+    np.array: The calculated samples following the PDF.
     """
 
     x_start = boundaries[0][0]
@@ -128,7 +142,10 @@ def rejection_3d(pdf, cf, boundaries, num_samples, max_iterations, constant=1, m
     samples = np.array(distribution)
 
     if len(samples) < num_samples:
-        raise ValueError(f'Only generated {len(samples)} / {num_samples} after {iterations} iterations.')
+        raise ValueError(
+            f'Only generated {len(samples)} / {num_samples} '
+            f'after {iterations} iterations.'
+        )
 
     return samples
 
@@ -142,6 +159,9 @@ def metropolis_hastings(pdf, start, domain, stepsize, num_samples, burnin_val=10
     stepsize (float) - Value of move by iteration.
     num_samples (int) - The desired number of points in the final sample.
     burnin_val (int) - The needed number of rejected samples by the algorithm.
+
+    Returns:
+    np.array: The calculated samples following the PDF.
     """
     state = start
     samples = []
@@ -181,6 +201,9 @@ def metropolis_hastings_3d(pdf, start, domain, stepsize, num_samples, burnin_val
     stepsize (list) - Value of move by iteration (for each dimension).
     num_samples (int) - The desired number of points in the final sample.
     burnin_val (int) - The needed number of rejected samples by the algorithm.
+
+    Returns:
+    np.array: The calculated samples following the PDF.
     """
     state = start
     dimensions = 3
@@ -225,6 +248,9 @@ def plot_samples(pdf, x_vals, samples, bins, method_num):
     method_num (bool) - Gives the label for the correct method:
                         0 --> Rejection Method
                         1 --> Metropolis-Hastings Algorithm
+
+    Returns:
+    plt.plot: The generated plot.
     """
     x_array = np.linspace(x_vals[0], x_vals[1], 1000)
     y_array = pdf(x_array)
@@ -250,37 +276,42 @@ def plot_3d_samples(samples, bins, method_num):
         samples: array with shape (num_samples, 3) - each row is [x,y,z]
         bins: number of bins for histograms
         method_num: 0 for Rejection, 1 for Metropolis-Hastings
+
+    Returns:
+    plt.plot: The x-y projection of the samples (tight).
+    plt.plot: The x-z projection of the samples (tight).
+    plt.plot: The y-z projection of the samples (tight).
     """
-    
+
     if method_num == 0:
         method = "Rejection Method"
     else:
         method = "Metropolis-Hastings Algorithm"
 
     samples_t = samples.T
-    
+
     plt.figure(figsize=(15, 5))
-    
+
     plt.subplot(131)
     plt.hist2d(samples_t[0], samples_t[1], bins=bins, density=True)
     plt.colorbar(label='Density')
     plt.xlabel('X samples')
     plt.ylabel('Y samples')
     plt.title(f'X-Y Projection - {method}')
-    
+
     plt.subplot(132)
     plt.hist2d(samples_t[0], samples_t[2], bins=bins, density=True)
     plt.colorbar(label='Density')
     plt.xlabel('X samples')
     plt.ylabel('Z samples')
     plt.title(f'X-Z Projection - {method}')
-    
+
     plt.subplot(133)
     plt.hist2d(samples_t[1], samples_t[2], bins=bins, density=True)
     plt.colorbar(label='Density')
     plt.xlabel('Y samples')
     plt.ylabel('Z samples')
     plt.title(f'Y-Z Projection - {method}')
-    
+
     plt.tight_layout()
     plt.show()
