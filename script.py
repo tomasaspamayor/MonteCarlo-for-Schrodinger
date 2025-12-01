@@ -102,53 +102,10 @@ for k in range(P):
 
 #%% 3 - Hydrogen Ground State
 
-def wf_optimiser(theta, m=1000, eps=1e-5, domain=np.array([[-4, 4], [-4, 4], [-4, 4]]), num_samples=10000):
-    """"
-    Optimise the wavefunction by variating the parameter theta. Used Quasi-Newton Algorithm.
-    """
-    theta_current = theta
-    theta_values = []
-    energy_values = []
+theta_guess = 0.85
+theta_optimal, _, energy_values = minimisers.hydrogen_wavefunction_optimiser(theta_guess)
+print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_values[-1]}')
 
-    def current_pdf(x):
-        return pdfs.wavefunction_hydrogen_atom_pdf(x, theta_current)
+#%% 4 - Hydrogen Molecule
 
-    for i in range(m):
-        x_points = samp.rejection_3d(current_pdf, 0, domain, num_samples, num_samples*10000, m=None)
-        samp.plot_3d_samples(x_points, 100, 1)
 
-        current_energy = ham.energy_expectation(x_points, theta_current)
-        energy_values.append(current_energy)
-        print(f"Iteration {i}: theta = {theta_current:.6f}, energy = {current_energy:.6f}")
-
-        def energy_wrapped(theta):
-            def current_pdf(x):
-                return pdfs.wavefunction_hydrogen_atom_pdf(x, theta)
-            x_points = samp.rejection_3d(current_pdf, 0, domain, num_samples,
-                                         num_samples*10000, m=None)
-            return ham.energy_expectation(x_points, theta)
-
-        def gradient_wrapped(theta):
-            def current_pdf(x):
-                return pdfs.wavefunction_hydrogen_atom_pdf(x, theta)
-            x_points = samp.rejection_3d(current_pdf, 0, domain, num_samples,
-                                         num_samples*10000, m=None)
-            return ham.energy_expectation_theta_derivative(x_points, theta)
-
-        theta_opt = minimisers.quasi_newton(energy_wrapped, gradient_wrapped,
-                                            theta_current, 1e-7, 10000)
-        theta_values.append(theta_opt)
-        theta_current = theta_opt
-
-        if i > 1 and np.abs(theta_values[-1] - theta_values[-2]) < eps:
-            print(f"Final theta = {theta_values[-1]:.6f}, Final energy = {energy_values[-1]:.6f}")
-            break
-
-    def final_pdf(x):
-        return pdfs.wavefunction_hydrogen_atom_pdf(x, theta_values[-1])
-    x_points = samp.rejection_3d(final_pdf, 0, domain, num_samples, num_samples*10000, m=None)
-    samp.plot_3d_samples(x_points, 100, 1)
-
-    return theta_values[-1], theta_values, energy_values
-
-# %%

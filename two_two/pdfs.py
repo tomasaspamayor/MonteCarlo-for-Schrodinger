@@ -136,3 +136,54 @@ def wavefunction_hydrogen_atom_pdf(point, theta):
     vals = np.array(normalization * np.exp(-2 * theta * r))
 
     return vals
+
+def wavefunction_hydrogen_molecule(r1, r2, theta, q1, q2):
+    """
+    Returns the wavefunction values for the two-hydrogen molecule system. Note 
+    that this can only be performed for a single point. If many wavefunction
+    values must be calculated, one must loop over their arrays calling this
+    function for every each individual point.
+
+    Args:
+    r1 (list): Position of the first electron (3D).
+    r2 (list): Position of the second electron (3D).
+    theta (list): Parameters for each dimension (3D).
+    q1 (list): Position of the first hydrogen atom (3D).
+    q2 (list): Position of the second hydrogen atom (3D).
+
+    Returns:
+    float: Wavefunction value.
+    """
+    theta_1 = theta[0]
+    theta_2 = theta[1]
+    theta_3 = theta[2]
+    r_12 = np.linalg.norm((r1 - r2))
+
+    exp_term = np.e ** (- theta_2 / (1 + theta_3 * r_12))
+    first_term = np.e ** (- theta_1 * (np.linalg.norm((r1 - q1)) + np.linalg.norm((r2 - q2))))
+    second_term = np.e ** (- theta_1 * (np.linalg.norm((r1 - q2)) + np.linalg.norm((r2 - q1))))
+
+    val = exp_term * (first_term + second_term)
+
+    return val
+
+def wavefunction_hydrogen_molecule_pdf(r1, r2, theta, q1, q2):
+    """
+    Returns the wavefunction PDF values for the two-hydrogen molecule system. 
+    Note that this can only be performed for a single point. If many wavefunction
+    PDF values must be calculated, one must loop over their arrays calling this
+    function for every each individual point.
+
+    Args:
+    r1 (list): Position of the first electron (3D).
+    r2 (list): Position of the second electron (3D).
+    theta (list): Parameters for each dimension (3D).
+    q1 (list): Position of the first hydrogen atom (3D).
+    q2 (list): Position of the second hydrogen atom (3D).
+
+    Returns:
+    float: Wavefunction PDF value.
+    """
+    wf_val = wavefunction_hydrogen_molecule(r1, r2, theta, q1, q2)
+    pdf_val = wf_val ** 2
+    return pdf_val
