@@ -314,90 +314,28 @@ def plot_3d_samples(samples, bins, method_num):
     plt.tight_layout()
     plt.show()
 
-def plot_6d_samples(samples, bond_length=1.4, bins=30, title="H₂ Electron Distribution (XZ Plane)"):
+def plot_6d_samples(samples, bins=70):
     """
-    Plot XZ-plane histograms showing electron distribution along the bond axis.
-    
-    Args:
-        samples: (N, 6) array of electron positions [x1,y1,z1,x2,y2,z2]
-        bond_length: Distance between nuclei
-        bins: Number of bins for histogram (must be integer)
-        title: Plot title
+    Plot only the combined XZ histogram (bottom left plot from original).
+    Removed nuclei markings and other plots.
     """
     bins = int(bins)  # Ensure integer
-    
-    # Extract XZ coordinates for both electrons (ignore Y since molecule is along Z)
-    electron1_xz = samples[:, [0, 2]]  # [x1, z1]
-    electron2_xz = samples[:, [3, 5]]  # [x2, z2]
-    
-    # Create figure with subplots
-    _, axes = plt.subplots(2, 2, figsize=(14, 12))
-    
-    # Plot 1: Electron 1 XZ histogram
-    ax1 = axes[0, 0]
-    h1 = ax1.hist2d(electron1_xz[:, 0], electron1_xz[:, 1], 
-                   bins=bins, cmap='Blues', density=True)
-    # Mark nuclei positions
-    ax1.scatter([0], [-bond_length/2], c='green', marker='*', s=200, 
-                label='Nucleus 1', zorder=5)
-    ax1.scatter([0], [bond_length/2], c='green', marker='*', s=200,
-                label='Nucleus 2', zorder=5)
-    ax1.set_xlabel('X (bohr)')
-    ax1.set_ylabel('Z (bohr)')
-    ax1.set_title('Electron 1 - XZ Distribution')
-    ax1.legend()
-    plt.colorbar(h1[3], ax=ax1, label='Probability Density')
-    ax1.axhline(y=0, color='black', linestyle='-', alpha=0.2)
-    ax1.axvline(x=0, color='black', linestyle='-', alpha=0.2)
-    
-    # Plot 2: Electron 2 XZ histogram
-    ax2 = axes[0, 1]
-    h2 = ax2.hist2d(electron2_xz[:, 0], electron2_xz[:, 1], 
-                   bins=bins, cmap='Reds', density=True)
-    ax2.scatter([0], [-bond_length/2], c='green', marker='*', s=200, 
-                label='Nucleus 1', zorder=5)
-    ax2.scatter([0], [bond_length/2], c='green', marker='*', s=200,
-                label='Nucleus 2', zorder=5)
-    ax2.set_xlabel('X (bohr)')
-    ax2.set_ylabel('Z (bohr)')
-    ax2.set_title('Electron 2 - XZ Distribution')
-    ax2.legend()
-    plt.colorbar(h2[3], ax=ax2, label='Probability Density')
-    ax2.axhline(y=0, color='black', linestyle='-', alpha=0.2)
-    ax2.axvline(x=0, color='black', linestyle='-', alpha=0.2)
-    
-    # Plot 3: Combined XZ histogram (both electrons)
-    ax3 = axes[1, 0]
-    # Combine both electrons' positions
+
+    electron1_xz = samples[:, [0, 2]]
+    electron2_xz = samples[:, [3, 5]]
+    plt.figure(figsize=(8, 6))
+
+
     all_x = np.concatenate([electron1_xz[:, 0], electron2_xz[:, 0]])
     all_z = np.concatenate([electron1_xz[:, 1], electron2_xz[:, 1]])
-    h3 = ax3.hist2d(all_x, all_z, bins=bins, cmap='viridis', density=True)
-    ax3.scatter([0, 0], [-bond_length/2, bond_length/2], 
-                c='green', marker='*', s=200, label='Nuclei', zorder=5)
-    ax3.set_xlabel('X (bohr)')
-    ax3.set_ylabel('Z (bohr)')
-    ax3.set_title('Both Electrons - Combined XZ Distribution')
-    ax3.legend()
-    plt.colorbar(h3[3], ax=ax3, label='Probability Density')
-    ax3.axhline(y=0, color='black', linestyle='-', alpha=0.2)
-    ax3.axvline(x=0, color='black', linestyle='-', alpha=0.2)
-    
-    # Plot 4: Z-axis marginal distribution (along bond axis)
-    ax4 = axes[1, 1]
-    ax4.hist(electron1_xz[:, 1], bins=bins, alpha=0.5, density=True, 
-             color='blue', label='Electron 1 - Z')
-    ax4.hist(electron2_xz[:, 1], bins=bins, alpha=0.5, density=True,
-             color='red', label='Electron 2 - Z')
-    # Mark nuclei positions on Z-axis
-    ax4.axvline(x=-bond_length/2, color='green', linestyle='--', 
-                alpha=0.7, label='Nucleus 1')
-    ax4.axvline(x=bond_length/2, color='green', linestyle='--', 
-                alpha=0.7, label='Nucleus 2')
-    ax4.set_xlabel('Z coordinate (bohr)')
-    ax4.set_ylabel('Probability Density')
-    ax4.set_title('Electron Distribution Along Bond Axis (Z)')
-    ax4.legend()
-    
-    plt.suptitle(title, fontsize=16)
+
+    h3 = plt.hist2d(all_x, all_z, bins=bins, cmap='viridis', density=True)
+
+    plt.colorbar(h3[3], label='Probability Density')
+
+    plt.xlabel('X (bohr)')
+    plt.ylabel('Z (bohr)')
+    plt.title('Both Electrons - Combined XZ Distribution')
+
     plt.tight_layout()
     plt.show()

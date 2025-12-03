@@ -219,8 +219,8 @@ def hydrogen_wavefunction_optimiser_gd(theta, domain=np.array([[-4, 4], [-4, 4],
                                        method=False, stepsize=0.05, num_samples=10000,
                                        m=50, eps=1e-5, learning_rate=0.1, track_progress=True):
     """
-    Optimise Hydrogen wavefunction parameter theta using Gradient Descent.
-    
+    Optimise Hydrogen wavefunction parameter theta. Used Gradient Descent.
+
     Args:
         theta: Initial wavefunction parameter
         domain: 3D sampling domain
@@ -299,7 +299,7 @@ def hydrogen_wavefunction_optimiser_gd(theta, domain=np.array([[-4, 4], [-4, 4],
 
 # Hydrogen Molecule Methods:
 
-def h2_optimiser_gd(theta, start, stepsize,  bond_length, delta, num_samples, alpha, m, eps, domain=np.array([[-3, 3], [-3, 3], [-3, 3]])):
+def h2_optimiser_gd(theta, start, stepsize, bond_length, delta, num_samples, alpha, m, eps, domain=np.array([[-3, 3], [-3, 3], [-3, 3]])):
     """
     Optimise the hydrogen molecule theta by the gradient descent method.
     """
@@ -321,7 +321,7 @@ def h2_optimiser_gd(theta, start, stepsize,  bond_length, delta, num_samples, al
             wf_vals = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta_current, q1, q2)
             return wf_vals ** 2
 
-        samples = samp.metropolis_hastings_3d(current_pdf, start, dom_6d, stepsize, num_samples, dimensions=6)
+        samples = samp.metropolis_hastings_3d(current_pdf, start, dom_6d, stepsize, num_samples, burnin_val=50000, dimensions=6)
 
         if i % 10 == 0:
             samp.plot_6d_samples(samples, bond_length)

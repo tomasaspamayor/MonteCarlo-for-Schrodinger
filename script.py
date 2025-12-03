@@ -3,6 +3,7 @@ See the script to solve the different questions with the methods defined
 in other files. ## Find optimal stepsize
 """
 #%% Imports and constants
+
 from functools import partial
 import numpy as np
 
@@ -112,6 +113,8 @@ print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_values
 #%% 4 - Hydrogen Molecule Optimising
 
 theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_gd(
-    theta=[0.9936, 0.5020, 0.9998], stepsize=0.05, bond_length=1.4,
-    start=[0.1, 0, -0.7, -0.1, 0, 0.7], delta=0.0005, num_samples=20000,
+    theta=[0.9, 0.4, 0.9], stepsize=0.4, bond_length=2,
+    start=[0.1, 0, -0.7, -0.1, 0, 0.7], delta=0.0005, num_samples=5000000,
     alpha=0.00005, m=30, eps=1e-5)
+
+# %%
