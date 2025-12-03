@@ -6,6 +6,9 @@ in 1D and 3D.
 import numpy as np
 import matplotlib.pyplot as plt
 
+## Two different sampling methods. The Metropolis-Hastings in 3D allows virtually
+## any dimension of samples. Must be specified in args.
+
 def rejection(pdf, cf, start, end, num_samples, max_iterations, constant=1, m=10):
     """"
     Generate an array of sample points which follow a PDF of choice. This is computed
@@ -24,20 +27,16 @@ def rejection(pdf, cf, start, end, num_samples, max_iterations, constant=1, m=10
     np.array: The calculated samples following the PDF.
     """
 
-    # Calculate M automatically if not provided:
     if constant == 1 and m is None:
         x_trial = np.linspace(start, end, 1000)
         pdf_max = np.max(pdf(x_trial))
         q = 1 / (end - start)
         m = pdf_max / q * 1.1 # Buffering.
-        print(f"Calculated m {m}")
 
     if constant == 1:
-        # Generate the simplest proposal function, a constant:
         q = 1 / (end - start)
         constant_cf = m * q
 
-    # Create an empty list for the distribution:
     distribution = []
 
     iterations = 0
@@ -98,7 +97,6 @@ def rejection_3d(pdf, cf, boundaries, num_samples, max_iterations, constant=1, m
     y_test = np.linspace(y_start, y_end, points_grid)
     z_test = np.linspace(z_start, z_end, points_grid)
 
-    # Calculate M automatically if not provided:
     if constant == 1 and m is None:
         pdf_max = 0
         for x in x_test:
@@ -109,7 +107,6 @@ def rejection_3d(pdf, cf, boundaries, num_samples, max_iterations, constant=1, m
 
         q = 1 / ( (x_end - x_start) * (y_end - y_start) * (z_end - z_start) )
         m = pdf_max / q * 1.1 # Buffering.
-        print(f"Calculated m {m}")
         constant_cf = m * q
     else:
         q = 1 / ( (x_end - x_start) * (y_end - y_start) * (z_end - z_start) )
@@ -191,7 +188,7 @@ def metropolis_hastings(pdf, start, domain, stepsize, num_samples, burnin_val=10
 
     return samples
 
-def metropolis_hastings_3d(pdf, start, domain, stepsize, num_samples, burnin_val=1000):
+def metropolis_hastings_3d(pdf, start, domain, stepsize, num_samples, burnin_val=1000, dimensions=3):
     """Generate an array of sample points which follow a PDF of choice. This is computed
     following the Metropolis-Hastings (MCMC) algorithm.
 
@@ -206,7 +203,6 @@ def metropolis_hastings_3d(pdf, start, domain, stepsize, num_samples, burnin_val
     np.array: The calculated samples following the PDF.
     """
     state = start
-    dimensions = 3
     samples = []
 
     if np.isscalar(stepsize):
@@ -236,6 +232,8 @@ def metropolis_hastings_3d(pdf, start, domain, stepsize, num_samples, burnin_val
     samples = np.array(samples)
 
     return samples
+
+## Plotting methods for the three encountered cases.
 
 def plot_samples(pdf, x_vals, samples, bins, method_num):
     """
@@ -313,5 +311,93 @@ def plot_3d_samples(samples, bins, method_num):
     plt.ylabel('Z samples')
     plt.title(f'Y-Z Projection - {method}')
 
+    plt.tight_layout()
+    plt.show()
+
+def plot_6d_samples(samples, bond_length=1.4, bins=30, title="H₂ Electron Distribution (XZ Plane)"):
+    """
+    Plot XZ-plane histograms showing electron distribution along the bond axis.
+    
+    Args:
+        samples: (N, 6) array of electron positions [x1,y1,z1,x2,y2,z2]
+        bond_length: Distance between nuclei
+        bins: Number of bins for histogram (must be integer)
+        title: Plot title
+    """
+    bins = int(bins)  # Ensure integer
+    
+    # Extract XZ coordinates for both electrons (ignore Y since molecule is along Z)
+    electron1_xz = samples[:, [0, 2]]  # [x1, z1]
+    electron2_xz = samples[:, [3, 5]]  # [x2, z2]
+    
+    # Create figure with subplots
+    _, axes = plt.subplots(2, 2, figsize=(14, 12))
+    
+    # Plot 1: Electron 1 XZ histogram
+    ax1 = axes[0, 0]
+    h1 = ax1.hist2d(electron1_xz[:, 0], electron1_xz[:, 1], 
+                   bins=bins, cmap='Blues', density=True)
+    # Mark nuclei positions
+    ax1.scatter([0], [-bond_length/2], c='green', marker='*', s=200, 
+                label='Nucleus 1', zorder=5)
+    ax1.scatter([0], [bond_length/2], c='green', marker='*', s=200,
+                label='Nucleus 2', zorder=5)
+    ax1.set_xlabel('X (bohr)')
+    ax1.set_ylabel('Z (bohr)')
+    ax1.set_title('Electron 1 - XZ Distribution')
+    ax1.legend()
+    plt.colorbar(h1[3], ax=ax1, label='Probability Density')
+    ax1.axhline(y=0, color='black', linestyle='-', alpha=0.2)
+    ax1.axvline(x=0, color='black', linestyle='-', alpha=0.2)
+    
+    # Plot 2: Electron 2 XZ histogram
+    ax2 = axes[0, 1]
+    h2 = ax2.hist2d(electron2_xz[:, 0], electron2_xz[:, 1], 
+                   bins=bins, cmap='Reds', density=True)
+    ax2.scatter([0], [-bond_length/2], c='green', marker='*', s=200, 
+                label='Nucleus 1', zorder=5)
+    ax2.scatter([0], [bond_length/2], c='green', marker='*', s=200,
+                label='Nucleus 2', zorder=5)
+    ax2.set_xlabel('X (bohr)')
+    ax2.set_ylabel('Z (bohr)')
+    ax2.set_title('Electron 2 - XZ Distribution')
+    ax2.legend()
+    plt.colorbar(h2[3], ax=ax2, label='Probability Density')
+    ax2.axhline(y=0, color='black', linestyle='-', alpha=0.2)
+    ax2.axvline(x=0, color='black', linestyle='-', alpha=0.2)
+    
+    # Plot 3: Combined XZ histogram (both electrons)
+    ax3 = axes[1, 0]
+    # Combine both electrons' positions
+    all_x = np.concatenate([electron1_xz[:, 0], electron2_xz[:, 0]])
+    all_z = np.concatenate([electron1_xz[:, 1], electron2_xz[:, 1]])
+    h3 = ax3.hist2d(all_x, all_z, bins=bins, cmap='viridis', density=True)
+    ax3.scatter([0, 0], [-bond_length/2, bond_length/2], 
+                c='green', marker='*', s=200, label='Nuclei', zorder=5)
+    ax3.set_xlabel('X (bohr)')
+    ax3.set_ylabel('Z (bohr)')
+    ax3.set_title('Both Electrons - Combined XZ Distribution')
+    ax3.legend()
+    plt.colorbar(h3[3], ax=ax3, label='Probability Density')
+    ax3.axhline(y=0, color='black', linestyle='-', alpha=0.2)
+    ax3.axvline(x=0, color='black', linestyle='-', alpha=0.2)
+    
+    # Plot 4: Z-axis marginal distribution (along bond axis)
+    ax4 = axes[1, 1]
+    ax4.hist(electron1_xz[:, 1], bins=bins, alpha=0.5, density=True, 
+             color='blue', label='Electron 1 - Z')
+    ax4.hist(electron2_xz[:, 1], bins=bins, alpha=0.5, density=True,
+             color='red', label='Electron 2 - Z')
+    # Mark nuclei positions on Z-axis
+    ax4.axvline(x=-bond_length/2, color='green', linestyle='--', 
+                alpha=0.7, label='Nucleus 1')
+    ax4.axvline(x=bond_length/2, color='green', linestyle='--', 
+                alpha=0.7, label='Nucleus 2')
+    ax4.set_xlabel('Z coordinate (bohr)')
+    ax4.set_ylabel('Probability Density')
+    ax4.set_title('Electron Distribution Along Bond Axis (Z)')
+    ax4.legend()
+    
+    plt.suptitle(title, fontsize=16)
     plt.tight_layout()
     plt.show()

@@ -4,9 +4,12 @@ Hydrogen ground state system. Since the Schrödinger equation is different
 for the two, they must be used carefully.
 """
 import numpy as np
-import matplotlib.pyplot as plt
+
 import two_one.differentiators as diff
 import two_two.pdfs as pdfs
+import three.hamiltonians as ham
+
+## Quantum Harmonic Oscillator Methods:
 
 def local_energy_qho_numerical(x_samples, h, coeffs, level, method=None):
     """
@@ -68,6 +71,8 @@ def local_energy_qho_numerical(x_samples, h, coeffs, level, method=None):
 
     return local_energies, mean_local_energy
 
+## Hydrogen Atom Methods:
+
 def local_energy_analytical(x, func, sec_der, theta):
     """
     Defines the analytical calculation for the wavefunction of the Hydrogen
@@ -86,28 +91,28 @@ def local_energy_analytical(x, func, sec_der, theta):
     vals = np.array(vals)
     return vals
 
-def plot_local_energies(energy_vals, bins, order, truncation):
-    """
-    Plot the local energy values in a histogram.
-    
-    Args:
-    energy_vals (list): The energy values obtained.
-    bins (int): Number of bins.
-    order (int): Order of the Hermite polynomial used.
-    truncation (int): Order of the truncation used.
+## Hydrogen Molecule Methods:
 
-    Returns:
-    plt.plot: The resulting histogram.
+def h2_local_energy(r1, r2, theta, q1, q2):
     """
-    plt.hist(energy_vals, bins=bins, density=True, alpha=0.7)
+    Returns the local energy of an H_2 molecule. Uses CDM to compute derivatives.
 
-    expected_energy = order + 0.5
-    plt.xlim(expected_energy - 2, expected_energy + 2)
-    plt.axvline(expected_energy, color='red', linestyle='--',
-                label=f'Expected: {expected_energy}')
-    plt.grid()
-    plt.xlabel('Local Energy E_l')
-    plt.ylabel("Probability Density")
-    plt.title(f'Local Energy for n={order}, {truncation}-order FD')
-    plt.legend()
-    plt.show()
+    """
+    # We first define all the needed distances:
+    r1A = np.linalg.norm(r1 - q1)  # Electron 1 to nucleus A.
+    r1B = np.linalg.norm(r1 - q2)  # Electron 1 to nucleus B.
+    r2A = np.linalg.norm(r2 - q1)  # Electron 2 to nucleus A.
+    r2B = np.linalg.norm(r2 - q2)  # Electron 2 to nucleus B.
+    r12 = np.linalg.norm(r1 - r2)  # Electron-electron distance.
+    R = np.linalg.norm(q1 - q2) # Interatomic distance.
+
+    wf_vals = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta, q1, q2)
+
+    if abs(wf_vals) < 1e-10:
+        return 0.0
+
+    k_term = ham.h2_k_term(r1, r2, theta, q1, q2)
+    potential_term = -1/r1A - 1/r1B - 1/r2A - 1/r2B + 1/r12 + 1/R
+
+    local_energy = k_term + potential_term
+    return local_energy

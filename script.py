@@ -1,6 +1,6 @@
 """
 See the script to solve the different questions with the methods defined
-in other files.
+in other files. ## Find optimal stepsize
 """
 #%% Imports and constants
 from functools import partial
@@ -11,7 +11,6 @@ import two_one.local_energy as le
 import two_two.sampling as samp
 import two_two.pdfs as pdfs
 import three.minimisers as minimisers
-import three.hamiltonians as ham
 
 hermite_coeffs = [
     [1],
@@ -24,7 +23,7 @@ hermite_coeffs = [
 
 P = len(hermite_coeffs)
 
-#%% 2.1 - Local Energy
+#%% 2.1 - QHO Local Energy Error Calculations
 
 ## To change: update code to serve all truncations. Fix error calculation.
 H_N = len(hermite_coeffs)
@@ -35,8 +34,8 @@ local_energy_vals = []
 
 for i in range(H_N):
     for j in range(5):
-        x_vals_le_second_i, local_energy_vals_second_i = le.local_energy(x_example, 0.01,
-                                                        hermite_coeffs, i, 0)
+        x_vals_le_second_i, local_energy_vals_second_i = le.local_energy_qho_numerical(
+                                                x_example, 0.01, hermite_coeffs, i, 0)
         x_vals_le.append(x_vals_le_second_i)
         local_energy_vals.append(local_energy_vals_second_i)
 
@@ -58,7 +57,7 @@ _, err_vals_tenth = err.err_finite_diff([1e-4, 0.01], 500,
 
 err.plot_err_methods([1e-4, 0.01], 500, [-1, 1], 1000, hermite_coeffs)
 
-#%% 2.2 - Sampling & Eingenvalues
+#%% 2.2 - QHO Sampling & Eingenvalues
 
 ## We plot the algorithms' samples for different example PDFs.
 
@@ -100,12 +99,19 @@ for k in range(P):
     energy_k_mh = np.mean(local_energies_mh[0])
     print(f'Local energy (order {k}): {energy_k_mh} (Metropolis-Hastings algorithm)')
 
-#%% 3 - Hydrogen Ground State
+#%% 3 - Hydrogen Ground State Optimising
 
+# We minimise first with a simple gradient descent and after with a
+# Quasi-Newton method. The latter takes a very long time.
 theta_guess = 0.85
+
+t_val, _, _ = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess)
 theta_optimal, _, energy_values = minimisers.hydrogen_wavefunction_optimiser(theta_guess)
-print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_values[-1]}')
+print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_values[-1]} for Quasi-Newton.')
 
-#%% 4 - Hydrogen Molecule
+#%% 4 - Hydrogen Molecule Optimising
 
-
+theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_gd(
+    theta=[0.9936, 0.5020, 0.9998], stepsize=0.05, bond_length=1.4,
+    start=[0.1, 0, -0.7, -0.1, 0, 0.7], delta=0.0005, num_samples=20000,
+    alpha=0.00005, m=30, eps=1e-5)

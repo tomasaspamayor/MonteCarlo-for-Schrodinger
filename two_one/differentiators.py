@@ -410,8 +410,7 @@ def cdm_samples_tenth(x_vals, wavefunction_vals, stepsize, coeffs, polynomial):
 
     return np.array(samples_inner), np.array(func_inner), np.array(sec_der_vals)
 
-## Finally, there's an analytical method to calculate the derivative of
-## any polynomial. Might be useful for Hermite.
+## Analytical method to calculate the derivative of any polynomial.
 
 def analytical_second_der(x, coeffs, level, plot=False):
     """
@@ -447,7 +446,40 @@ def analytical_second_der(x, coeffs, level, plot=False):
 
     return np.array(terms)
 
-###
+## CDM to solve a Laplacian.
 
-if __name__ == "__main__":
-    print("Running differentiators.py directly")
+def cdm_laplacian(func, point, step=0.01):
+    """
+    4th-order central difference Laplacian.
+    More stable than 8th-order for noisy functions.
+    
+    f''(x) ≈ [-f(x+2h) + 16f(x+h) - 30f(x) + 16f(x-h) - f(x-2h)] / (12h²)
+    """
+    x, y, z = point
+    f = func(point)
+    
+    # x-direction
+    f_x2 = func([x + 2*step, y, z])
+    f_x1 = func([x + step, y, z])
+    f_x_1 = func([x - step, y, z])
+    f_x_2 = func([x - 2*step, y, z])
+    
+    fxx = (-f_x2 + 16*f_x1 - 30*f + 16*f_x_1 - f_x_2) / (12 * step**2)
+    
+    # y-direction  
+    f_y2 = func([x, y + 2*step, z])
+    f_y1 = func([x, y + step, z])
+    f_y_1 = func([x, y - step, z])
+    f_y_2 = func([x, y - 2*step, z])
+    
+    fyy = (-f_y2 + 16*f_y1 - 30*f + 16*f_y_1 - f_y_2) / (12 * step**2)
+    
+    # z-direction
+    f_z2 = func([x, y, z + 2*step])
+    f_z1 = func([x, y, z + step])
+    f_z_1 = func([x, y, z - step])
+    f_z_2 = func([x, y, z - 2*step])
+    
+    fzz = (-f_z2 + 16*f_z1 - 30*f + 16*f_z_1 - f_z_2) / (12 * step**2)
+    
+    return fxx + fyy + fzz
