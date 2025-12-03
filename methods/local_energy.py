@@ -5,9 +5,9 @@ for the two, they must be used carefully.
 """
 import numpy as np
 
-import two_one.differentiators as diff
-import two_two.pdfs as pdfs
-import three.hamiltonians as ham
+import methods.differentiators as diff
+import methods.pdfs as pdfs
+import methods.hamiltonians as ham
 
 ## Quantum Harmonic Oscillator Methods:
 

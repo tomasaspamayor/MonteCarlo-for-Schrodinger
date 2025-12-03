@@ -3,10 +3,10 @@ Hold the different Hamiltonians used throughout the project.
 """
 
 import numpy as np
-import two_two.pdfs as pdfs
-import two_two.sampling as samp
-import two_one.local_energy as le
-import two_one.differentiators as diff
+import methods.pdfs as pdfs
+import methods.sampling as samp
+import methods.local_energy as le
+import methods.differentiators as diff
 
 ## Methods for the Hydrogen Atom:
 
@@ -145,7 +145,7 @@ def h2_energy_expectation(bond_length, theta, domain=None, initial_point=None, n
     def h2_6d(point_6d):
         r1 = point_6d[:3]
         r2 = point_6d[3:]
-        wf_val = pdfs.wavefunction_hydrogen_molecule_opt(r1, r2, bond_length, theta)
+        wf_val = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta, q1, q2, bond_length=bond_length)
         return abs(wf_val) ** 2
 
     if domain is None:

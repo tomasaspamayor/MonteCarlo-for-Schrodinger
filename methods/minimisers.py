@@ -2,10 +2,10 @@
 Module to hold all the function minimising methods.
 """
 import numpy as np
-import two_two.pdfs as pdfs
-import two_two.sampling as samp
-import three.hamiltonians as ham
-import two_one.local_energy as le
+import methods.pdfs as pdfs
+import methods.sampling as samp
+import methods.hamiltonians as ham
+import methods.local_energy as le
 
 ## Minimiser Methods:
 

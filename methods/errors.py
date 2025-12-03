@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import two_one.differentiators as diff
+import methods.differentiators as diff
 
 def err_finite_diff(range_stepsizes, num_stepsizes, range_val, samples_num, coeffs, method, plot=True):
     """
@@ -24,34 +24,33 @@ def err_finite_diff(range_stepsizes, num_stepsizes, range_val, samples_num, coef
         stepsizes_array = np.linspace(range_stepsizes[0], range_stepsizes[-1], num_stepsizes)
         n = len(stepsizes_array)
 
-        samples = np.linspace(range_val[0], range_val[-1], samples_num)
         current_coeffs = coeffs[poly_order]
         rms_fdm_list = []
 
         for step_idx in range(n):
 
             if method == 0:
-                samples_inner, sec_fd, _ = diff.fd_second(stepsizes_array[step_idx],
+                samples_inner, sec_fd, _ = diff.cdm_samples_second(stepsizes_array[step_idx],
                                         range_val, samples_num, current_coeffs)
                 sec_exact = diff.analytical_second_der(samples_inner, coeffs, poly_order, plot=False)
 
             elif method == 1:
-                samples_inner, sec_fd, _ = diff.fd_fourth(stepsizes_array[step_idx],
+                samples_inner, sec_fd, _ = diff.cdm_samples_fourth(stepsizes_array[step_idx],
                                         range_val, samples_num, current_coeffs)
                 sec_exact = diff.analytical_second_der(samples_inner, coeffs, poly_order, plot=False)
 
             elif method == 2:
-                samples_inner, sec_fd, _ = diff.fd_sixth(stepsizes_array[step_idx],
+                samples_inner, sec_fd, _ = diff.cdm_samples_sixth(stepsizes_array[step_idx],
                                         range_val, samples_num, current_coeffs)
                 sec_exact = diff.analytical_second_der(samples_inner, coeffs, poly_order, plot=False)
 
             elif method == 4:
-                samples_inner, sec_fd, _ = diff.fd_tenth(stepsizes_array[step_idx],
-                                    range_val, samples_num, current_coeffs)
+                samples_inner, sec_fd, _ = diff.cdm_samples_tenth(stepsizes_array[step_idx],
+                                    range_val, samples_num, current_coeffs, polynomial=1)
                 sec_exact = diff.analytical_second_der(samples_inner, coeffs, poly_order, plot=False)
 
             else: # Keeping the 8th as the default as it is the optimal.
-                samples_inner, sec_fd, _ = diff.fd_eighth(stepsizes_array[step_idx],
+                samples_inner, sec_fd, _ = diff.cdm_samples_eighth(stepsizes_array[step_idx],
                                     range_val, samples_num, current_coeffs)
                 sec_exact = diff.analytical_second_der(samples_inner, coeffs, poly_order, plot=False)
 

@@ -6,11 +6,11 @@ in other files. ## Find optimal stepsize
 from functools import partial
 import numpy as np
 
-import two_one.errors as err
-import two_one.local_energy as le
-import two_two.sampling as samp
-import two_two.pdfs as pdfs
-import three.minimisers as minimisers
+import methods.errors as err
+import methods.local_energy as le
+import methods.sampling as samp
+import methods.pdfs as pdfs
+import methods.minimisers as minimisers
 
 hermite_coeffs = [
     [1],

@@ -6,7 +6,7 @@ import math
 import numpy as np
 from scipy.stats import norm
 
-import two_one.polynomials as poly
+import methods.polynomials as poly
 
 ### First we define two sampling functions to try our algorithms over.
 

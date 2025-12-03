@@ -11,7 +11,7 @@ order.
 import numpy as np
 import matplotlib.pyplot as plt
 
-import two_one.polynomials as poly
+import methods.polynomials as poly
 
 ### The first of these calculate the derivatives by looking at the function
 ### a given step away from each sample. You therefore need the function to call.
