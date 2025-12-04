@@ -116,3 +116,12 @@ def h2_local_energy(r1, r2, theta, q1, q2):
 
     local_energy = k_term + potential_term
     return local_energy
+
+def h2_le_sym(r1, r2, theta, q1, q2):
+    """
+    Here we account the indistinguishability of the two electrons and
+    compute the symmetric local energy.
+    """
+    le_even = h2_local_energy(r1=r1, r2=r2, theta=theta, q1=q1,q2=q2)
+    le_odd = h2_local_energy(r1=r2, r2=r1, theta=theta, q1=q1,q2=q2)
+    return 0.5 * (le_even + le_odd)

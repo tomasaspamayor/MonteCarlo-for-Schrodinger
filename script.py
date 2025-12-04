@@ -104,17 +104,83 @@ for k in range(P):
 
 # We minimise first with a simple gradient descent and after with a
 # Quasi-Newton method. The latter takes a very long time.
-theta_guess = 0.85
+theta_guess = 0.90
 
-t_val, _, _ = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess)
-theta_optimal, _, energy_values = minimisers.hydrogen_wavefunction_optimiser(theta_guess)
-print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_values[-1]} for Quasi-Newton.')
+theta_optimal, theta_history, energy_history = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess, m=200, eps=1e-8)
+print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_history[-1]} for Quasi-Newton.')
 
 #%% 4 - Hydrogen Molecule Optimising
 
-theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_gd(
-    theta=[0.9, 0.4, 0.9], stepsize=0.4, bond_length=2,
-    start=[0.1, 0, -0.7, -0.1, 0, 0.7], delta=0.0005, num_samples=5000000,
-    alpha=0.00005, m=30, eps=1e-5)
+## First we plot out some of the samplings:
 
+theta = np.array([1.0, 1.0, 1.0])
+bond_length = 2
+num_samples = 500000
+q1 = np.array([0, 0, -bond_length/2])
+q2 = np.array([0, 0, bond_length/2])
+start_pos = [0.1, 0, -0.7, -0.1, 0, 0.7]
+domain_6d = [[-3, 3], [-3, 3], [-3, 3],
+             [-3, 3], [-3, 3], [-3, 3]]
+
+def h2_pdf(pos_6d):
+    """PDF for Hydrogen Molecule"""
+    r1 = pos_6d[:3]
+    r2 = pos_6d[3:]
+    wf = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta, q1, q2)
+    return wf ** 2
+
+samples = samp.metropolis_hastings_3d(
+    pdf=h2_pdf,
+    start=start_pos,
+    domain=domain_6d,
+    stepsize=0.1,
+    num_samples=num_samples,
+    burnin_val=int(num_samples*0.1),
+    dimensions=6
+)
+print(f"Generated {len(samples)} samples")
+samp.plot_6d_samples(samples, bins=125)
+
+#%% Now we optimise the theta values to minimise the energy:
+
+theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_gd_2(
+    theta=[0.75, 0.7, 0.75],
+    stepsize=0.15,
+    bond_length=2,
+    start=[0.1, 0, -0.7, -0.1, 0, 0.7],
+    delta=0.02,
+    num_samples=100000,
+    alpha=0.1,
+    m=100,            # ← Increase to allow more iterations
+    eps=1e-2,         # ← Stricter gradient threshold (not parameter change)
+    burnin_val=10000
+)
+
+# %%
+
+# Test with different starting points
+test_thetas = [
+    [0.5, 0.5, 0.5],
+    [1.2, 0.3, 0.8],
+    [0.7, 0.6, 0.6],
+    [1.0, 0.2, 1.0],
+]
+
+for theta_init in test_thetas:
+    print(f"\nTesting from theta = {theta_init}")
+    
+    theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_gd(
+        theta=theta_init,
+        stepsize=0.15,
+        bond_length=2,
+        start=[0.1, 0, -0.7, -0.1, 0, 0.7],
+        delta=0.02,
+        num_samples=200000,
+        alpha=0.01,
+        m=30,
+        eps=1e-5,
+        burnin_val=20000
+    )
+    
+    print(f"  Final: theta={theta_opt}, E={e_opt:.6f}")
 # %%

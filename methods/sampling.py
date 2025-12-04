@@ -6,6 +6,8 @@ in 1D and 3D.
 import numpy as np
 import matplotlib.pyplot as plt
 
+import methods.pdfs as pdfs
+
 ## Two different sampling methods. The Metropolis-Hastings in 3D allows virtually
 ## any dimension of samples. Must be specified in args.
 
@@ -233,7 +235,45 @@ def metropolis_hastings_3d(pdf, start, domain, stepsize, num_samples, burnin_val
 
     return samples
 
-## Plotting methods for the three encountered cases.
+def samplings_h2_molecule(bond_length, initial_point, theta, domain, stepsize, num_samples, burnin_val):
+    """
+    Sampling the H_2 molecule's PDF.
+    
+    bond_length (float): Description
+    initial_point (list): Description
+    theta (list): Description
+    domain (list): Description
+    stepsize (float): Description
+    num_samples (int): Description
+    burnin_val (int): Description
+    """
+    q1 = np.array([0, 0, -bond_length / 2])
+    q2 = np.array([0, 0, bond_length / 2])
+
+    def h2_6d(point_6d):
+        r1 = point_6d[:3]
+        r2 = point_6d[3:]
+        wf_val = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta, q1, q2,
+                                                     bond_length=bond_length)
+        return abs(wf_val) ** 2
+
+    if domain is None:
+        domain_size = 5.0
+        domain = [(-domain_size, domain_size) for _ in range(6)]
+    elif np.isscalar(domain):
+        domain = [(-domain, domain) for _ in range(6)]
+
+    if initial_point is None:
+        initial_point = np.array([0.2, 0, -0.3,
+                                  -0.2, 0, 0.3])
+
+    samples_6d = metropolis_hastings_3d(h2_6d, initial_point, domain,
+                      stepsize, num_samples,
+                      burnin_val=burnin_val,
+                      dimensions=6)
+    return samples_6d
+
+## Plotting methods for the encountered cases.
 
 def plot_samples(pdf, x_vals, samples, bins, method_num):
     """
@@ -316,26 +356,25 @@ def plot_3d_samples(samples, bins, method_num):
 
 def plot_6d_samples(samples, bins=70):
     """
-    Plot only the combined XZ histogram (bottom left plot from original).
+    Plot only the combined ZX histogram (bottom left plot from original).
     Removed nuclei markings and other plots.
     """
-    bins = int(bins)  # Ensure integer
+    bins = int(bins)
 
     electron1_xz = samples[:, [0, 2]]
     electron2_xz = samples[:, [3, 5]]
     plt.figure(figsize=(8, 6))
 
-
     all_x = np.concatenate([electron1_xz[:, 0], electron2_xz[:, 0]])
     all_z = np.concatenate([electron1_xz[:, 1], electron2_xz[:, 1]])
 
-    h3 = plt.hist2d(all_x, all_z, bins=bins, cmap='viridis', density=True)
+    h3 = plt.hist2d(all_z, all_x, bins=bins, cmap='viridis', density=True)
 
     plt.colorbar(h3[3], label='Probability Density')
 
-    plt.xlabel('X (bohr)')
-    plt.ylabel('Z (bohr)')
-    plt.title('Both Electrons - Combined XZ Distribution')
+    plt.xlabel('z')
+    plt.ylabel('x')
+    plt.title('Electron Wavefunction - H2 Molecule')
 
     plt.tight_layout()
     plt.show()
