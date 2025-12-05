@@ -1,113 +1,77 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import methods.differentiators as diff
+import methods.pdfs as pdfs
 
-def err_finite_diff(range_stepsizes, num_stepsizes, range_val, samples_num, coeffs, method, plot=True):
+def error_calculation(wavefunction=None, coeffs=None, n=2):
     """
-    Compute and plot the FDM's error with respect to the analytical derivative.
+    Calculate and plot the errors in the finite difference method.
 
     Args:
-    stepsize - (float): The stepsize in the FD method.
-    range_val - (list): The beggining and end points of the independent variable.
-    level - (int): The order of the Hermite polynomial to be differentiated.
-    coeffs - (list): The coefficients in increasing order of monomial.
-    method: Defines the truncation used. In increasing integer order, they are:
-            0 -> Second Order Truncation
-            1 -> Fourth Order Truncation
-            2 -> Sixth Order Truncation
-            else -> Eighth Order Truncation
-            4 -> Tenth Order Truncation
+    wavefunction (callable): The wavefunction to be studied.
+    coeffs (list): The Hermite coefficients.
+    n (int): Order of the wavefunction.
+
+    Returns:
+    plt.plot: The error dependant 
     """
-    rms_fdm_hermites = []
-    h = len(coeffs)
-    for poly_order in range(h):
-        stepsizes_array = np.linspace(range_stepsizes[0], range_stepsizes[-1], num_stepsizes)
-        n = len(stepsizes_array)
+    if wavefunction is None:
+        wavefunction = pdfs.wavefunction_qho
 
-        current_coeffs = coeffs[poly_order]
-        rms_fdm_list = []
+    if coeffs is None:
+        coeffs =[[1], [0, 2], [-2, 0, 4], [0, -12, 0, 8], [12, 0, -48, 0, 16]]
 
-        for step_idx in range(n):
+    x = np.linspace(-3, 3, 1000)
+    h_values = np.logspace(-12, 1, 120)
+    psi_exact = diff.analytical_second_derivative_qho(n, x)
 
-            if method == 0:
-                samples_inner, sec_fd, _ = diff.cdm_samples_second(stepsizes_array[step_idx],
-                                        range_val, samples_num, current_coeffs)
-                sec_exact = diff.analytical_second_der(samples_inner, coeffs, poly_order, plot=False)
+    methods = {
+        '2nd order': diff.cdm_step_second,
+        '4th order': diff.cdm_step_fourth,
+        '6th order': diff.cdm_step_sixth,
+        '8th order': diff.cdm_step_eighth,
+        '10th order': diff.cdm_step_tenth
+    }
 
-            elif method == 1:
-                samples_inner, sec_fd, _ = diff.cdm_samples_fourth(stepsizes_array[step_idx],
-                                        range_val, samples_num, current_coeffs)
-                sec_exact = diff.analytical_second_der(samples_inner, coeffs, poly_order, plot=False)
+    errors_vals = {}
+    optimal_h = {}
+    min_errors = {}
 
-            elif method == 2:
-                samples_inner, sec_fd, _ = diff.cdm_samples_sixth(stepsizes_array[step_idx],
-                                        range_val, samples_num, current_coeffs)
-                sec_exact = diff.analytical_second_der(samples_inner, coeffs, poly_order, plot=False)
+    # Calculate errors for each method
+    print("Calculating errors for each method:")
+    for name, method in methods.items():
+        method_errors = []
+        for h in h_values:
+            psi_numerical = method(x, wavefunction, h, coeffs, n)
+            error = np.sqrt(np.mean((psi_numerical - psi_exact)**2))
+            method_errors.append(error)
 
-            elif method == 4:
-                samples_inner, sec_fd, _ = diff.cdm_samples_tenth(stepsizes_array[step_idx],
-                                    range_val, samples_num, current_coeffs, polynomial=1)
-                sec_exact = diff.analytical_second_der(samples_inner, coeffs, poly_order, plot=False)
+        errors_vals[name] = method_errors
+        min_idx = np.argmin(method_errors)
+        optimal_h[name] = h_values[min_idx]
+        min_errors[name] = method_errors[min_idx]
 
-            else: # Keeping the 8th as the default as it is the optimal.
-                samples_inner, sec_fd, _ = diff.cdm_samples_eighth(stepsizes_array[step_idx],
-                                    range_val, samples_num, current_coeffs)
-                sec_exact = diff.analytical_second_der(samples_inner, coeffs, poly_order, plot=False)
+        print(f"{name}: Min error = {method_errors[min_idx]:.2e} at h = {h_values[min_idx]:.2e}")
 
-            rms = np.sqrt(np.mean((sec_fd - sec_exact) ** 2))
-            rms_fdm_list.append(rms)
+    plt.figure(figsize=(10, 7))
 
-        rms_fdm = np.array(rms_fdm_list)
-        rms_fdm_hermites.append(rms_fdm)
+    colors = ['blue', 'green', 'red', 'orange', 'purple']
+    markers = ['o', 's', '^', 'D', 'v']
 
-    if plot is True:
-        plt.figure(figsize=(10, 6))
-        for poly_order in range(h):
-            plt.loglog(stepsizes_array, rms_fdm_hermites[poly_order],
-                    label=f'H_{poly_order}', marker='o', markersize=3)
-        plt.grid()
-        plt.xlabel('Step size')
-        plt.ylabel("RMS Error")
-        plt.title(f"RMS Error vs Step Size - {['Second', 'Fourth', 'Sixth', 'Eighth', 'Tenth'][method]} Order FD")
-        plt.legend()
-        plt.show()
+    for (name, method_errors), color, marker in zip(errors_vals.items(), colors, markers):
+        plt.loglog(h_values, method_errors, marker=marker, markersize=4,
+                linestyle='-', linewidth=1.5, color=color, label=name)
 
-    return stepsizes_array, rms_fdm_hermites
+        min_idx = np.argmin(method_errors)
+        plt.plot(h_values[min_idx], method_errors[min_idx],
+                marker='*', markersize=10, color=color)
 
-def plot_err_methods(range_stepsizes, num_stepsizes, range_val, samples_num, coeffs):
-    """
-    Plot the errors in the different finite difference method truncations
-    for a same function, log-log.
+    plt.xlabel('Step size h (log scale)', fontsize=12)
+    plt.ylabel('RMS Error (log scale)', fontsize=12)
+    plt.title(f'Finite Difference Error Comparison for n={n} QHO Wavefunction', fontsize=14)
+    plt.grid(True, which="both", alpha=0.3)
+    plt.legend(fontsize=10)
+    plt.tight_layout()
+    plt.show()
 
-    Args:
-    stepsizes (list) - Array of the arrays for the stepsizes of decresing order
-                       of truncation.
-    errors (list) - As above, for the errors.
-    poly_order (int) - Order of the Hermite polynomial being analised.
-    """
-    tenth_steps, tenth_err = err_finite_diff(range_stepsizes, num_stepsizes,
-                         range_val, samples_num, coeffs, 4,  plot=False)
-    eigth_steps, eigth_err = err_finite_diff(range_stepsizes, num_stepsizes,
-                         range_val, samples_num, coeffs, 3,  plot=False)
-    sixth_steps, sixth_err = err_finite_diff(range_stepsizes, num_stepsizes,
-                          range_val, samples_num, coeffs, 2, plot=False)
-    fourth_steps, fourth_err = err_finite_diff(range_stepsizes, num_stepsizes,
-                          range_val, samples_num, coeffs, 1, plot=False)
-    second_steps, second_err = err_finite_diff(range_stepsizes, num_stepsizes,
-                          range_val, samples_num, coeffs, 0, plot=False)
-
-    n = len(tenth_err)
-
-    for i in range(n):
-        plt.loglog(tenth_steps, tenth_err[i], label='10th order')
-        plt.loglog(eigth_steps, eigth_err[i], label='8th order')
-        plt.loglog(sixth_steps, sixth_err[i], label='6th order')
-        plt.loglog(fourth_steps, fourth_err[i], label='4th order')
-        plt.loglog(second_steps, second_err[i], label='2nd order')
-
-        plt.grid()
-        plt.xlabel('stepsize')
-        plt.ylabel("RMS FDM")
-        plt.title(f"RMS value of FDM with respect to stepsize, H_{i}")
-        plt.legend()
-        plt.show()
+    return name, optimal_h[name], min_errors[name]

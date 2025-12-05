@@ -77,10 +77,8 @@ def wavefunction_qho(x, coeffs):
     Returns:
     np.array: The wavefunction values at the sample points.
     """
-    normalization = 1.0 / np.sqrt(2 ** len(coeffs) * math.factorial(len(coeffs)
-                                                                    - 1) * np.sqrt(np.pi))
     h_n = np.polynomial.polynomial.polyval(x, coeffs)
-    return h_n * np.exp(-x ** 2 / 2) * normalization
+    return h_n * np.exp(-x ** 2 / 2)
 
 def wavefunction_qho_pdf(x, n, coeffs):
     """

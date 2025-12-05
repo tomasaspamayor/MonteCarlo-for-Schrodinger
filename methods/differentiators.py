@@ -9,7 +9,6 @@ order.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import methods.polynomials as poly
 
@@ -412,39 +411,17 @@ def cdm_samples_tenth(x_vals, wavefunction_vals, stepsize, coeffs, polynomial):
 
 ## Analytical method to calculate the derivative of any polynomial.
 
-def analytical_second_der(x, coeffs, level, plot=False):
+def analytical_second_derivative_qho(n, x):
     """
-    Returns the values computed from the analytical calculation of the
-    second derivative of any polynomial.
-
-    Args:
-    x (list): The array you wish to calculate the derivative at.
-    coeffs (list): The coefficients in increasing order of monomial.
-    level (int): The order of the Hermite polynomials.
-    plot (bool): Plotting of the results.
-
-    Returns:
-    plt.plot: If called, the resulting derivative's plot.
-    np.array: The second derivative values at each of the sample points.
+    Here.
     """
-    current_coeffs = coeffs[level]
-    n = len(current_coeffs)
-    func_vals = np.polyval(current_coeffs[::-1], x)
-
-    sec_der_vals_exact = np.zeros_like(x, dtype=float)
-    for i in range(2, n):
-        sec_der_vals_exact += i * (i - 1) * current_coeffs[i] * (x ** (i - 2))
-    terms = -0.5 * sec_der_vals_exact / func_vals
-
-    if plot is True:
-        plt.loglog(x, terms)
-        plt.grid()
-        plt.xlabel('x')
-        plt.ylabel("E_l")
-        plt.title(f'Local Energy (E_l) for the {i} wavefunction, analytical method')
-        plt.show()
-
-    return np.array(terms)
+    coeffs =[[1], [0, 2], [-2, 0, 4], [0, -12, 0, 8], [12, 0, -48, 0, 16]]
+    coeff = coeffs[n]
+    H = np.polyval(coeff[::-1], x)
+    H_prime = np.polyval(np.polyder(coeff[::-1]), x)
+    H_double_prime = np.polyval(np.polyder(coeff[::-1], 2), x)
+    exponential = np.exp(-x**2 / 2)
+    return exponential * (H_double_prime - 2*x*H_prime + (x**2 - 1)*H)
 
 ## CDM to solve a Laplacian.
 

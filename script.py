@@ -1,6 +1,6 @@
 """
 See the script to solve the different questions with the methods defined
-in other files. ## Find optimal stepsize
+in other files. ## Use optimal stepsize. Fix Metropolis Hastings. Fix convergence for molecule. Revise potential. Errors?
 """
 #%% Imports and constants
 
@@ -26,7 +26,6 @@ P = len(hermite_coeffs)
 
 #%% 2.1 - QHO Local Energy Error Calculations
 
-## To change: update code to serve all truncations. Fix error calculation.
 H_N = len(hermite_coeffs)
 x_example = np.linspace(-4, 4, 1000)
 
@@ -45,18 +44,7 @@ local_energy_vals = np.array(local_energy_vals)
 
 # Calculating the RMS error on these calculations:
 
-stepsize_vals, err_vals_second = err.err_finite_diff([1e-4, 0.01], 500,
-                                            [-1, 1], 1000, hermite_coeffs, 0)
-_, err_vals_fourth = err.err_finite_diff([1e-4, 0.01], 500,
-                                            [-1, 1], 1000, hermite_coeffs, 1)
-_, err_vals_sixth = err.err_finite_diff([1e-4, 0.01], 500,
-                                            [-1, 1], 1000, hermite_coeffs, 2)
-_, err_vals_eighth = err.err_finite_diff([1e-4, 0.01], 500,
-                                            [-1, 1], 1000, hermite_coeffs, 3)
-_, err_vals_tenth = err.err_finite_diff([1e-4, 0.01], 500,
-                                            [-1, 1], 1000, hermite_coeffs, 4)
-
-err.plot_err_methods([1e-4, 0.01], 500, [-1, 1], 1000, hermite_coeffs)
+optimal_method, optimal_stepsize, stepsize_error = err.error_calculation()
 
 #%% 2.2 - QHO Sampling & Eingenvalues
 
@@ -168,7 +156,7 @@ test_thetas = [
 
 for theta_init in test_thetas:
     print(f"\nTesting from theta = {theta_init}")
-    
+
     theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_gd(
         theta=theta_init,
         stepsize=0.15,
@@ -181,6 +169,6 @@ for theta_init in test_thetas:
         eps=1e-5,
         burnin_val=20000
     )
-    
+
     print(f"  Final: theta={theta_opt}, E={e_opt:.6f}")
 # %%
