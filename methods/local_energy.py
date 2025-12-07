@@ -6,7 +6,7 @@ for the two, they must be used carefully.
 import numpy as np
 
 import methods.differentiators as diff
-import methods.pdfs as pdfs
+from methods import pdfs
 import methods.hamiltonians as ham
 
 ## Quantum Harmonic Oscillator Methods:
@@ -95,8 +95,18 @@ def local_energy_analytical(x, func, sec_der, theta):
 
 def h2_local_energy(r1, r2, theta, q1, q2):
     """
-    Returns the local energy of an H_2 molecule. Uses CDM to compute derivatives.
+    Calculate the local energy of an H_2 molecule's electrons. Uses CDM to compute
+    derivatives.
 
+    Args:
+    r1 (list): First electron's position (3D).
+    r2 (list): Second electron's position (3D).
+    theta (list): Wavefunction parameter.
+    q1 (list): First nucleus' position (3D).
+    q2 (list): Second nucleus' position (3D).
+
+    Returns:
+    float: Local energy value.
     """
     # We first define all the needed distances:
     r1A = np.linalg.norm(r1 - q1)  # Electron 1 to nucleus A.
@@ -119,8 +129,19 @@ def h2_local_energy(r1, r2, theta, q1, q2):
 
 def h2_le_sym(r1, r2, theta, q1, q2):
     """
-    Here we account the indistinguishability of the two electrons and
-    compute the symmetric local energy.
+    Calculate the local energy of an H_2 molecule. Uses CDM to compute
+    derivatives. Introduces symmetry arguments due to indistinguishability of
+    fermions.
+
+    Args:
+    r1 (list): First electron's position (3D).
+    r2 (list): Second electron's position (3D).
+    theta (list): Wavefunction parameter.
+    q1 (list): First nucleus' position (3D).
+    q2 (list): Second nucleus' position (3D).
+
+    Returns:
+    float: Local energy value.
     """
     le_even = h2_local_energy(r1=r1, r2=r2, theta=theta, q1=q1,q2=q2)
     le_odd = h2_local_energy(r1=r2, r2=r1, theta=theta, q1=q1,q2=q2)

@@ -102,7 +102,6 @@ def gradient_descent_3d(gradient, point, alpha=0.01, eps=1e-7, m=1000, track=Tru
     eps (float): Convergence factor.
     m (int): Cap for iterations.
     track (bool): Whether to print out the statements.
-
     """
     point = np.array(point, dtype=float)
 

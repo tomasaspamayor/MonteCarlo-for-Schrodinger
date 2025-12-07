@@ -178,5 +178,3 @@ bond_length_vals, energy_vals = morse.bond_length_energies([0.5, 3], theta_morse
 
 D_val, a_val, r0_val, pcov = morse.morse_fitting(bond_length_vals, energy_vals, 1.4)
 morse.morse_plot(D_val, a_val, r0_val, bond_length_vals, energy_vals, 1.4)
-
-# %%

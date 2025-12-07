@@ -1,5 +1,5 @@
 """
-Defines polynomial evaluation.
+Defines polynomial evaluation. Could be substituted with numpy package.
 """
 
 import numpy as np

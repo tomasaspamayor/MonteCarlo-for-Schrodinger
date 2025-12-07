@@ -1,9 +1,11 @@
 """
-Hold the different Hamiltonians used throughout the project.
+Holds the different Hamiltonians and energy calculations used throughout the 
+project.
 """
 
 import numpy as np
-import methods.pdfs as pdfs
+
+from methods import pdfs
 import methods.local_energy as le
 import methods.differentiators as diff
 import methods.sampling as samp
@@ -106,13 +108,28 @@ def h2_energy_expectation(samples_6d, bond_length, theta):
     return energy / m
 
 def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, stepsize=0.15):
+    """
+    Calculates the energies of the ground state with varying internuclear
+    separation. Useful for Morse Potential calculations.
+
+    Args:
+    bl_range (list): Start and end point of the stepsize range.
+    theta (list): Wavefunction parameter.
+    n (int): Number of stepsizes to be computed.
+    num_samples (int): Number of samples in the Metropolis-Hastings algorithm.
+    stepsize (float): Stepsize in the Metropolis-Hastings algorithm.
+
+    Returns:
+    list: Array with all the computed bond lengths.
+    list: The respective energies.
+    """
     bond_lengths = np.linspace(bl_range[0], bl_range[-1], n)
     energies = []
 
     for b in bond_lengths:
         # sample from the PDF corresponding to THIS bond length
         samples = samp.samplings_h2_molecule(
-            bond_length=b, 
+            bond_length=b,
             initial_point=None,
             theta=theta,
             domain=None,
@@ -121,7 +138,7 @@ def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, s
             burnin_val=burnin
         )
 
-        E = h2_energy_expectation(samples, b, theta)
-        energies.append(E)
+        e = h2_energy_expectation(samples, b, theta)
+        energies.append(e)
 
     return bond_lengths, np.array(energies)

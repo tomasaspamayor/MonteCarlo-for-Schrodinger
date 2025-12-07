@@ -13,7 +13,10 @@ def error_calculation(wavefunction=None, coeffs=None, n=2):
     n (int): Order of the wavefunction.
 
     Returns:
-    plt.plot: The error dependant 
+    int: Optimal truncation order.
+    float: Optimal stepsize.
+    float: Error of said optimal step.
+    plt.plot: Plot of all errors against stepsize.
     """
     if wavefunction is None:
         wavefunction = pdfs.wavefunction_qho

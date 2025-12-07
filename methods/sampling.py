@@ -239,6 +239,7 @@ def samplings_h2_molecule(bond_length, initial_point, theta, domain, stepsize, n
     """
     Sampling the H_2 molecule's PDF.
     
+    Args:
     bond_length (float): Description
     initial_point (list): Description
     theta (list): Description
@@ -246,6 +247,9 @@ def samplings_h2_molecule(bond_length, initial_point, theta, domain, stepsize, n
     stepsize (float): Description
     num_samples (int): Description
     burnin_val (int): Description
+
+    Returns:
+    list: The samples.
     """
     q1 = np.array([0, 0, -bond_length / 2])
     q2 = np.array([0, 0, bond_length / 2])
@@ -311,9 +315,9 @@ def plot_3d_samples(samples, bins, method_num):
     Plot 2D projections of 3D samples.
     
     Args:
-        samples: array with shape (num_samples, 3) - each row is [x,y,z]
-        bins: number of bins for histograms
-        method_num: 0 for Rejection, 1 for Metropolis-Hastings
+    samples: Sampled values.
+    bins: Number of bins for histograms
+    method_num: 0 for Rejection, 1 for Metropolis-Hastings
 
     Returns:
     plt.plot: The x-y projection of the samples (tight).
@@ -358,6 +362,13 @@ def plot_6d_samples(samples, bins=70):
     """
     Plot only the combined ZX histogram (bottom left plot from original).
     Removed nuclei markings and other plots.
+
+    Args:
+    samples: Sampled values.
+    bins: Number of bins for histograms.
+
+    Returns:
+    plt.plot: The z-x projection of the samples.
     """
     bins = int(bins)
 
