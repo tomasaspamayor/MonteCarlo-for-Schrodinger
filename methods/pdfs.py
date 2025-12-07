@@ -180,39 +180,37 @@ def wavefunction_hydrogen_molecule(r1, r2, theta, q1, q2, bond_length=None):
 
     return val
 
-def h2_wavefunction_theta_derivative(r1, r2, theta, j, q1, q2):
+def wavefunction_hydrogen_molecule_theta_derivative(r1, r2, theta, j, q1, q2):
     """
-    Analytic derivative of ln Ψ_H2 with respect to theta_j at a single point.
-    
+    Analytic derivative of ln of wavefunction w.r.t. theta at a single point.
+
     Args:
-        r1, r2: electron positions
-        theta: current parameters
-        j: index of the parameter (0,1,2)
-        q1, q2: nuclear positions
-    
+        r1 (list): Electron 1 position.
+        r2 (list): Electron 2 position.
+        theta (list): Wavefunction parameter.
+        j (int): index of the parameter (0,1,2)
+        q1 (list): Nucleus 1 position.
+        q2 (list): Nucleus 2 position.
+
     Returns:
-        float: derivative d ln Ψ / d theta_j
+        float: ln of wavefunction's derivative w.r.t. parameter theta.
     """
     r12 = np.linalg.norm(r1 - r2)
     r1q1 = np.linalg.norm(r1 - q1)
     r1q2 = np.linalg.norm(r1 - q2)
     r2q1 = np.linalg.norm(r2 - q1)
     r2q2 = np.linalg.norm(r2 - q2)
-    
+
     theta1, theta2, theta3 = theta
-    
+
     if j == 0:
-        # derivative wrt theta1 in the exponentials
         first_term = -(r1q1 + r2q2)
         second_term = -(r1q2 + r2q1)
-        val = (np.exp(-theta1*(r1q1+r2q2)) * first_term + np.exp(-theta1*(r1q2+r2q1)) * second_term) / \
-              (np.exp(-theta1*(r1q1+r2q2)) + np.exp(-theta1*(r1q2+r2q1)))
+        val = (np.exp(-theta1 * (r1q1 + r2q2)) * first_term
+              + np.exp(-theta1 * (r1q2 + r2q1)) * second_term) / \
+              (np.exp(-theta1 * (r1q1 + r2q2)) + np.exp(-theta1 * (r1q2 + r2q1)))
         return val
-    elif j == 1:
-        # derivative wrt theta2 in exp(theta2/(1+theta3*r12))
+    if j == 1:
         return 1.0 / (1 + theta3 * r12)
-    elif j == 2:
-        # derivative wrt theta3 in exp(theta2/(1+theta3*r12))
-        return -theta2 * r12 / (1 + theta3 * r12)**2
-
-
+    if j == 2:
+        return -theta2 * r12 / (1 + theta3 * r12) ** 2
