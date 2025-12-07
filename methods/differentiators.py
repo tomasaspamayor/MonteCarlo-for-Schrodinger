@@ -424,8 +424,34 @@ def analytical_second_derivative_qho(n, x):
     return exponential * (H_double_prime - 2*x*H_prime + (x**2 - 1)*H)
 
 ## CDM to solve a Laplacian.
-
 def cdm_laplacian(func, point, step=0.01):
+    """
+    2nd-order central difference Laplacian.
+    
+    Uses the standard stencil:
+        f''(x) ≈ (f(x+h) - 2f(x) + f(x-h)) / h²
+    """
+    x, y, z = point
+    f = func(point)
+
+    # x-direction
+    f_x1  = func([x + step, y, z])
+    f_x_1 = func([x - step, y, z])
+    fxx = (f_x1 - 2*f + f_x_1) / (step**2)
+
+    # y-direction
+    f_y1  = func([x, y + step, z])
+    f_y_1 = func([x, y - step, z])
+    fyy = (f_y1 - 2*f + f_y_1) / (step**2)
+
+    # z-direction
+    f_z1  = func([x, y, z + step])
+    f_z_1 = func([x, y, z - step])
+    fzz = (f_z1 - 2*f + f_z_1) / (step**2)
+
+    return fxx + fyy + fzz
+
+def cdm_laplacian_4th(func, point, step=0.01):
     """
     4th-order central difference Laplacian.
     More stable than 8th-order for noisy functions.

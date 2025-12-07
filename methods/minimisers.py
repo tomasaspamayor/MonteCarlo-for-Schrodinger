@@ -5,6 +5,7 @@ import numpy as np
 import methods.pdfs as pdfs
 import methods.sampling as samp
 import methods.hamiltonians as ham
+import methods.local_energy as le
 
 ## Minimiser Methods:
 
@@ -351,6 +352,7 @@ def h2_optimiser_gd_2(theta, start, stepsize, bond_length, delta, num_samples, a
     Optimise the hydrogen molecule theta by the gradient descent method.
     """
     theta_current = np.array(theta, dtype=float)
+    alpha_current = alpha
     theta_vals = []
     e_vals= []
     grad_vals = []
@@ -363,32 +365,48 @@ def h2_optimiser_gd_2(theta, start, stepsize, bond_length, delta, num_samples, a
                                             burnin_val=burnin_val)
     
         current_energy = ham.h2_energy_expectation(samples_6d, bond_length, theta_current)
+
         grad = np.zeros_like(theta_current)
     
-        # Use SAME samples for all perturbations (no resampling)
         for j in range(len(theta_current)):
             theta_plus = theta_current.copy()
             theta_plus[j] += delta
-            # Don't resample! Use same samples_6d
-            energy_plus = ham.h2_energy_expectation(samples_6d, bond_length, theta_plus)
-            grad[j] = (energy_plus - current_energy) / delta
-        
+            theta_minus = theta_current.copy()
+            theta_minus[j] -= delta
 
-            e_vals.append(current_energy)
-            theta_vals.append(theta_current.copy())
-            grad_norm = np.linalg.norm(grad)
-            grad_vals.append(grad)
-            grad_norms_vals.append(grad_norm)
+            samples_6d_plus = samp.samplings_h2_molecule(
+                bond_length, start, theta_plus,
+                domain=None, stepsize=stepsize,
+                num_samples=num_samples,
+                burnin_val=burnin_val
+            )
+            samples_6d_minus = samp.samplings_h2_molecule(
+                bond_length, start, theta_minus,
+                domain=None, stepsize=stepsize,
+                num_samples=num_samples,
+                burnin_val=burnin_val
+            )
+
+            energy_plus  = ham.h2_energy_expectation(samples_6d_plus,  bond_length, theta_plus)
+            energy_minus = ham.h2_energy_expectation(samples_6d_minus, bond_length, theta_minus)
+
+            grad[j] = (energy_plus - energy_minus) / (2 * delta)
+
+        grad_norm = np.linalg.norm(grad)    
+        e_vals.append(current_energy)
+        theta_vals.append(theta_current.copy())
+        grad_vals.append(grad.copy())
+        grad_norms_vals.append(grad_norm)
 
         print(f"Iteration {i}: R = {theta_current}, E = {current_energy}, grad = {grad}, grad norm = {grad_norm}")
 
-        if i > 0 and grad_norm < eps:
-            print(f'Convergence has been reached: Theta values: {theta_current}, Gradient = {grad}, Gradient Norm = {grad_norm}')
-            break
-
         start = samples_6d[-1]
-        theta_current = theta_current - alpha * grad
-        theta_current = np.clip(theta_current, 0.1, 2.0)
+        theta_current = theta_current - alpha_current * grad
+        alpha_current *= 0.99
+
+        if grad_norm < eps:
+            print(f'Converged: gradient norm {grad_norm:.6f} < {eps}')
+            break
 
     minimum_index = np.argmin(e_vals)
     theta_optimised = theta_vals[minimum_index]
@@ -397,3 +415,172 @@ def h2_optimiser_gd_2(theta, start, stepsize, bond_length, delta, num_samples, a
     print(f'The optimal theta is {theta_optimised}, with energy {e_optimised}.')
 
     return theta_optimised, e_optimised, theta_vals, e_vals
+
+def h2_optimiser_gd_chat(theta, start, stepsize, bond_length, delta,
+                         num_samples, alpha, m, eps, burnin_val):
+    """
+    Optimise the hydrogen molecule theta by gradient descent using
+    correlated finite differences and MCMC sampling.
+    """
+
+    theta_current = np.array(theta, dtype=float)
+    alpha_current = alpha
+
+    theta_vals = []
+    e_vals = []
+    grad_vals = []
+    grad_norms_vals = []
+
+    # Precompute nuclear positions once
+    q1 = np.array([0, 0, -bond_length / 2])
+    q2 = np.array([0, 0,  bond_length / 2])
+
+    # Local fast alias to the local-energy function
+    le_func = le.h2_le_sym
+
+    for it in range(m):
+
+        # --- SAMPLE ----------------------------------------------------------
+        samples = samp.samplings_h2_molecule(
+            bond_length=bond_length,
+            initial_point=start,
+            theta=theta_current,
+            domain=None,
+            stepsize=stepsize,
+            num_samples=num_samples,
+            burnin_val=burnin_val
+        )
+
+        # Pre-split coordinates ONCE — huge performance improvement
+        coords = [(s[:3], s[3:]) for s in samples]
+
+        # --- CURRENT ENERGY --------------------------------------------------
+        E_current_samples = np.array(
+            [le_func(r1, r2, theta_current, q1, q2) for (r1, r2) in coords]
+        )
+        E_current = E_current_samples.mean()
+
+        # --- GRADIENT (FINITE DIFFERENCE WITH SHARED SAMPLES) ---------------
+        n_params = len(theta_current)
+        grad = np.zeros(n_params)
+
+        for j in range(n_params):
+            # Prepare ± parameter vectors
+            theta_plus  = theta_current.copy()
+            theta_minus = theta_current.copy()
+            theta_plus[j]  += delta
+            theta_minus[j] -= delta
+
+            # Compute local energies for +δθ_j
+            E_plus_samples = np.array(
+                [le_func(r1, r2, theta_plus, q1, q2) for (r1, r2) in coords]
+            )
+
+            # Compute local energies for -δθ_j
+            E_minus_samples = np.array(
+                [le_func(r1, r2, theta_minus, q1, q2) for (r1, r2) in coords]
+            )
+
+            # Central finite difference derivative
+            grad[j] = (E_plus_samples.mean() - E_minus_samples.mean()) / (2 * delta)
+
+        grad_norm = np.linalg.norm(grad)
+
+        # Record diagnostic values
+        e_vals.append(E_current)
+        theta_vals.append(theta_current.copy())
+        grad_vals.append(grad.copy())
+        grad_norms_vals.append(grad_norm)
+
+        print(f"Iteration {it}: θ={theta_current}, "
+              f"E={E_current:.6f}, |grad|={grad_norm:.6f}")
+
+        # Update for next MCMC chain
+        start = samples[-1]
+
+        # Gradient descent update
+        theta_current = theta_current - alpha_current * grad
+        alpha_current *= 0.99  # learning-rate decay
+
+        if grad_norm < eps:
+            print(f"Converged: gradient norm {grad_norm:.6f} < {eps}")
+            break
+
+    # Pick the lowest-energy result ever reached
+    idx_min = np.argmin(e_vals)
+    theta_opt = theta_vals[idx_min]
+    e_opt = e_vals[idx_min]
+
+    print(f"\nOptimised θ = {theta_opt}, E = {e_opt}")
+
+    return theta_opt, e_opt, theta_vals, e_vals
+
+def h2_optimiser_vmc(theta, start, bond_length, stepsize=0.5, num_samples=50000,
+                      alpha=0.05, m=100, eps=1e-3, burnin_val=5000):
+    """
+    Variational Monte Carlo optimiser for H2 molecule using stochastic gradient descent.
+    
+    Args:
+        theta: initial parameter array [theta1, theta2, theta3]
+        start: initial 6D electron coordinates
+        bond_length: inter-nuclear distance
+        stepsize: Metropolis-Hastings step size
+        num_samples: number of Monte Carlo samples per iteration
+        alpha: learning rate
+        m: maximum number of iterations
+        eps: gradient norm convergence criterion
+        burnin_val: number of burn-in steps for sampling
+    
+    Returns:
+        theta_opt: optimized parameters
+        energy_opt: energy at optimized parameters
+        theta_history: list of theta values
+        energy_history: list of energies
+    """
+    theta_current = np.array(theta, dtype=float)
+    theta_history = []
+    energy_history = []
+
+    q1 = np.array([0, 0, - bond_length / 2])
+    q2 = np.array([0, 0, bond_length / 2])
+
+    for it in range(m):
+        samples_6d = samp.samplings_h2_molecule(
+            bond_length, start, theta_current,
+            domain=None, stepsize=stepsize,
+            num_samples=num_samples, burnin_val=burnin_val
+        )
+
+        el_samples = np.array([
+            le.h2_le_sym(samples_6d[i,:3], samples_6d[i,3:], theta_current, q1, q2)
+            for i in range(len(samples_6d))
+        ])
+        e_mean = el_samples.mean()
+
+        grad = np.zeros_like(theta_current)
+        for j in range(len(theta_current)):
+            lnpsi_derivative = np.array([
+                pdfs.h2_wavefunction_theta_derivative(samples_6d[i,:3],
+                                    samples_6d[i,3:], theta_current, j, q1, q2)
+                for i in range(len(samples_6d))
+            ])
+            grad[j] = 2.0 * np.mean((el_samples - e_mean) * lnpsi_derivative)
+
+        theta_current -= alpha * grad
+        start = samples_6d[-1]
+
+        theta_history.append(theta_current.copy())
+        energy_history.append(e_mean)
+        grad_norm = np.linalg.norm(grad)
+        print(f"Iteration {it}: Theta = {theta_current}, Energy = {e_mean:.6f}, Gradient Norm = {grad_norm:.6f}")
+
+        if grad_norm < eps:
+            print(f"Converged: |grad| = {grad_norm:.6f} < {eps}")
+            break
+
+    i_min = np.argmin(energy_history)
+    theta_opt = theta_history[i_min]
+    energy_opt = energy_history[i_min]
+
+    print(f"Optimised theta = {theta_opt}, energy = {energy_opt:.6f}")
+    return theta_opt, energy_opt, theta_history, energy_history

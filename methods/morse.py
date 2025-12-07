@@ -41,7 +41,7 @@ def morse_potential(r, D, a, r0, e_single):
     """ Returns the Morse potential values"""
     return D * (1 - np.exp(-a * (r - r0)))**2 - D + 2 * e_single
 
-def morse_fitting(bond_lengths, energies, e_single, p0=np.array([0.17, 1.0, 1.0])):
+def morse_fitting(bond_lengths, energies, e_single, p0=np.array([0.17, 1.0, 1.4])):
     """
     Fits the morse data to the model.
     
@@ -53,13 +53,13 @@ def morse_fitting(bond_lengths, energies, e_single, p0=np.array([0.17, 1.0, 1.0]
     def morse_func_fit(r, D, a, r0):
         return morse_potential(r, D, a, r0, e_single)
 
-    popt, pcov, _ , _, _= curve_fit(morse_func_fit, bond_lengths, energies, p0, maxfev=20000)
+    popt, pcov= curve_fit(morse_func_fit, bond_lengths, energies, p0, maxfev=20000)
 
     D_fit, a_fit, r0_fit = popt
 
     print(f'The obtained results are: r_0 = {r0_fit} and D = {D_fit}.')
     print('The experimental values are: r_0 = 1.14 and D = 0.17.')
-    return D_fit, a_fit, r0_fit, pcov
+    return D_fit, a_fit, r0_fit, pco
 
 def morse_plot(D_fit, a_fit, r0_fit, bond_lengths, energies, e_single):
     """

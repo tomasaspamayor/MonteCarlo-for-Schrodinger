@@ -1,6 +1,6 @@
 """
 See the script to solve the different questions with the methods defined
-in other files. ## Use optimal stepsize. Fix Metropolis Hastings. Fix convergence for molecule. Revise potential. Errors?
+in other files. ## Fix Metropolis Hastings. Check convergence method in molecule. Revise potential. Errors?
 """
 #%% Imports and constants
 
@@ -12,6 +12,7 @@ import methods.local_energy as le
 import methods.sampling as samp
 import methods.pdfs as pdfs
 import methods.minimisers as minimisers
+import methods.morse as morse
 
 hermite_coeffs = [
     [1],
@@ -74,7 +75,7 @@ for k in range(P):
     pdf_qo = partial(pdfs.wavefunction_qho_pdf, n=k, coeffs=hermite_coeffs)
     samples_wf_r = samp.rejection(pdf_qo, 0, -4.6, 4.5, 500000, 5000000, m=None)
     samp.plot_samples(pdf_qo, [-4.6, 4.5], samples_wf_r, 200, 0)
-    local_energies_r = le.local_energy_qho_numerical(samples_wf_r, h=1e-4,
+    local_energies_r = le.local_energy_qho_numerical(samples_wf_r, optimal_stepsize,
                                             coeffs=hermite_coeffs, level=k, method=None)
     energy_k_r = np.mean(local_energies_r[0])
     print(f'Local energy (order {k}): {energy_k_r} (Rejection sampling)')
@@ -83,27 +84,26 @@ for k in range(P):
     pdf_qo = partial(pdfs.wavefunction_qho_pdf, n=k, coeffs=hermite_coeffs)
     samples_wf_mh = samp.metropolis_hastings(pdf_qo, 0, [-4.5, 4.5], 0.05, 500000, 250000)
     samp.plot_samples(pdf_qo, [-4.5, 4.5], samples_wf_mh, 200, 1)
-    local_energies_mh = le.local_energy_qho_numerical(samples_wf_mh, h=1e-4,
+    local_energies_mh = le.local_energy_qho_numerical(samples_wf_mh, optimal_stepsize,
                                              coeffs=hermite_coeffs, level=k, method=None)
     energy_k_mh = np.mean(local_energies_mh[0])
     print(f'Local energy (order {k}): {energy_k_mh} (Metropolis-Hastings algorithm)')
 
 #%% 3 - Hydrogen Ground State Optimising
 
-# We minimise first with a simple gradient descent and after with a
-# Quasi-Newton method. The latter takes a very long time.
+# We minimise first with a simple gradient descent.
 theta_guess = 0.90
 
-theta_optimal, theta_history, energy_history = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess, m=200, eps=1e-8)
+theta_optimal, theta_history, energy_history = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess, m=200, stepsize=optimal_stepsize, eps=1e-8)
 print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_history[-1]} for Quasi-Newton.')
 
-#%% 4 - Hydrogen Molecule Optimising
+#%% 4 - Hydrogen Molecule Optimisation
 
-## First we plot out some of the samplings:
+## First we plot out the original sampling:
 
 theta = np.array([1.0, 1.0, 1.0])
 bond_length = 2
-num_samples = 500000
+num_samples = 2000000
 q1 = np.array([0, 0, -bond_length/2])
 q2 = np.array([0, 0, bond_length/2])
 start_pos = [0.1, 0, -0.7, -0.1, 0, 0.7]
@@ -127,48 +127,56 @@ samples = samp.metropolis_hastings_3d(
     dimensions=6
 )
 print(f"Generated {len(samples)} samples")
-samp.plot_6d_samples(samples, bins=125)
+samp.plot_6d_samples(samples, bins=100)
 
-#%% Now we optimise the theta values to minimise the energy:
-
-theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_gd_2(
-    theta=[0.75, 0.7, 0.75],
-    stepsize=0.15,
-    bond_length=2,
-    start=[0.1, 0, -0.7, -0.1, 0, 0.7],
-    delta=0.02,
+# We optimise the wavefunction
+theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_vmc(
+    theta=[0.5, 0.5, 0.5],
+    start=[0.0, 0.0, -0.5, 0.0, 0.0, 0.5],
+    bond_length=2.0,
+    stepsize=0.5,
     num_samples=100000,
-    alpha=0.1,
-    m=100,            # ← Increase to allow more iterations
-    eps=1e-2,         # ← Stricter gradient threshold (not parameter change)
-    burnin_val=10000
+    alpha=0.05,
+    m=100,
+    eps=1e-3,
+    burnin_val=5000
 )
 
-# %%
+# We plot out the optimised wavefunction
+bond_length_opt = 2
+num_samples = 2000000
+q1 = np.array([0, 0, -bond_length_opt/2])
+q2 = np.array([0, 0, bond_length_opt/2])
+start_pos = [0.1, 0, -0.7, -0.1, 0, 0.7]
+domain_6d = [[-3, 3], [-3, 3], [-3, 3],
+             [-3, 3], [-3, 3], [-3, 3]]
 
-# Test with different starting points
-test_thetas = [
-    [0.5, 0.5, 0.5],
-    [1.2, 0.3, 0.8],
-    [0.7, 0.6, 0.6],
-    [1.0, 0.2, 1.0],
-]
+def h2_pdf_opt(pos_6d):
+    """PDF for Hydrogen Molecule"""
+    r1 = pos_6d[:3]
+    r2 = pos_6d[3:]
+    wf = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta_opt, q1, q2)
+    return wf ** 2
 
-for theta_init in test_thetas:
-    print(f"\nTesting from theta = {theta_init}")
+samples_opt = samp.metropolis_hastings_3d(
+    pdf=h2_pdf_opt,
+    start=start_pos,
+    domain=domain_6d,
+    stepsize=0.1,
+    num_samples=num_samples,
+    burnin_val=int(num_samples*0.1),
+    dimensions=6
+)
 
-    theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_gd(
-        theta=theta_init,
-        stepsize=0.15,
-        bond_length=2,
-        start=[0.1, 0, -0.7, -0.1, 0, 0.7],
-        delta=0.02,
-        num_samples=200000,
-        alpha=0.01,
-        m=30,
-        eps=1e-5,
-        burnin_val=20000
-    )
+print(f"Generated {len(samples_opt)} samples")
+samp.plot_6d_samples(samples_opt, bins=100)
 
-    print(f"  Final: theta={theta_opt}, E={e_opt:.6f}")
+# Morse Potential Fitting
+
+theta_morse = theta_opt
+bond_length_vals, energy_vals = morse.bond_length_energies([0.5, 3], theta_morse, 50, num_samples=100000)
+
+D_val, a_val, r0_val, pcov = morse.morse_fitting(bond_length_vals, energy_vals, 1.4)
+morse.morse_plot(D_val, a_val, r0_val, bond_length_vals, energy_vals, 1.4)
+
 # %%
