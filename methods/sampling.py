@@ -62,12 +62,6 @@ def rejection(pdf, cf, start, end, num_samples, max_iterations, constant=1, m=10
 
     samples = np.array(distribution)
 
-    if len(samples) < num_samples:
-        raise ValueError(
-            f'Only generated {len(samples)} / {num_samples} '
-            f'after {iterations} iterations.'
-        )
-
     return samples
 
 def rejection_3d(pdf, cf, boundaries, num_samples, max_iterations, constant=1, m=None):
@@ -140,12 +134,6 @@ def rejection_3d(pdf, cf, boundaries, num_samples, max_iterations, constant=1, m
 
     samples = np.array(distribution)
 
-    if len(samples) < num_samples:
-        raise ValueError(
-            f'Only generated {len(samples)} / {num_samples} '
-            f'after {iterations} iterations.'
-        )
-
     return samples
 
 def metropolis_hastings(pdf, start, domain, stepsize, num_samples, burnin_val=1000):
@@ -167,11 +155,6 @@ def metropolis_hastings(pdf, start, domain, stepsize, num_samples, burnin_val=10
 
     def proposal(current_state):
         candidate = current_state + np.random.normal(0, stepsize)
-        while candidate < domain[0] or candidate > domain[1]:
-            if candidate < domain[0]:
-                candidate = 2 * domain[0] - candidate
-            if candidate > domain[1]:
-                candidate = 2 * domain[1] - candidate
         return candidate
 
     iterations = num_samples + burnin_val
@@ -204,7 +187,7 @@ def metropolis_hastings_3d(pdf, start, domain, stepsize, num_samples, burnin_val
     Returns:
     np.array: The calculated samples following the PDF.
     """
-    state = start
+    state = np.array(start)
     samples = []
 
     if np.isscalar(stepsize):
@@ -213,21 +196,31 @@ def metropolis_hastings_3d(pdf, start, domain, stepsize, num_samples, burnin_val
         stepsize = np.array(stepsize)
 
     def proposal(current_state):
-        candidate = current_state + np.random.normal(0, stepsize)
-        for d in range(dimensions):
-            bottom, top = domain[d]
-            candidate[d] = np.clip(candidate[d], bottom, top)
+        candidate = current_state + np.random.normal(0, stepsize, dimensions)
         return candidate
 
     iterations = num_samples + burnin_val
     for i in range(iterations):
         candidate = proposal(state)
+
+        valid = True
+        for d in range(dimensions):
+            bottom, top = domain[d]
+            if candidate[d] < bottom or candidate[d] > top:
+                valid = False
+                break
+
+        if not valid:
+            if i >= burnin_val:
+                samples.append(state.copy())
+            continue
+
         ratio = pdf(candidate) / pdf(state)
         alpha = np.min([1, ratio])
         u = np.random.random()
 
         if u <= alpha:
-            state = candidate
+            state = candidate.copy()
         if i >= burnin_val:
             samples.append(state)
 
@@ -315,8 +308,8 @@ def plot_3d_samples(samples, bins, method_num):
     Plot 2D projections of 3D samples.
     
     Args:
-    samples: Sampled values.
-    bins: Number of bins for histograms
+    samples: sampled values.
+    bins: number of bins for histograms
     method_num: 0 for Rejection, 1 for Metropolis-Hastings
 
     Returns:
