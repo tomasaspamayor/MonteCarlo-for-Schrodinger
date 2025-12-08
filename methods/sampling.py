@@ -136,7 +136,7 @@ def rejection_3d(pdf, cf, boundaries, num_samples, max_iterations, constant=1, m
 
     return samples
 
-def metropolis_hastings(pdf, start, domain, stepsize, num_samples, burnin_val=1000):
+def metropolis_hastings(pdf, start, stepsize, num_samples, burnin_val=1000):
     """Generate an array of sample points which follow a PDF of choice. This is computed
     following the Metropolis-Hastings (MCMC) algorithm.
 

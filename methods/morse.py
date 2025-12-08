@@ -2,6 +2,7 @@
 
 import numpy as np
 from scipy.optimize import curve_fit
+
 import matplotlib.pyplot as plt
 import methods.sampling as samp
 import methods.hamiltonians as ham
@@ -59,32 +60,43 @@ def morse_potential(r, d, a, r0, e_single):
     """
     return d * (1 - np.exp(- a * (r - r0))) ** 2 - d + 2 * e_single
 
-def morse_fitting(bond_lengths, energies, e_single, p0=np.array([0.17, 1.0, 1.4])):
+def morse_fitting(bond_lengths, energies, e_single,
+                  p0=np.array([0.17, 1.0, 1.4])):
     """
-    Fits the morse data to the model.
-    
-    Args_
-    bond_lengths (list): Bond lengths at which the energies were computed
-    energies (list): The computed energy values
-    e_single (float): The energy value of a single hydrogen atom.
+    Fit Morse potential parameters (D, A, r0) to computed energies.
 
-    Returns:
-    float: Fitted 'D' parameter.
-    float: Fitted 'A' parameter.
-    float: Fitted 'R_0' parameter.
-    list: covariance matrix.
+    Args:
+    bond_lengths (list) Distances at which the molecular energies were computed.
+    energies (list): The associated computed energy values.
+    e_single (list): Energy of a single hydrogen atom (used inside morse_potential).
+    p0 (list): Initial guess for [D, A, r0].
+
+    Returns
+
+    D_fit (list): Fitted dissociation energy parameter.
+    A_fit (list): Fitted width parameter.
+    r0_fit (list): Ftitted equilibrium bond length.
+    pcov (list): Covariance matrix from the fit.
     """
 
-    def morse_func_fit(r, d, a, r0):
-        return morse_potential(r, d, a, r0, e_single)
+    def morse_func_fit(r, D, A, r0):
+        return morse_potential(r, D, A, r0, e_single)
 
-    popt, pcov = curve_fit(morse_func_fit, bond_lengths, energies, p0, maxfev=20000)
+    # Run the fit
+    popt, pcov = curve_fit(
+        morse_func_fit,
+        bond_lengths,
+        energies,
+        p0=p0,
+        maxfev=20000
+    )
 
-    d_fit, a_fit, r0_fit = popt
+    D_fit, A_fit, r0_fit = popt
 
-    print(f'The obtained results are: r_0 = {r0_fit} and D = {d_fit}.')
-    print('The experimental values are: r_0 = 1.14 and D = 0.17.')
-    return d_fit, a_fit, r0_fit, pcov
+    print(f"Fit results: r0 = {r0_fit}, D = {D_fit}, A = {A_fit}")
+    print("Experimental vals: r0 = 1.14, D = 0.17")
+
+    return D_fit, A_fit, r0_fit, pcov
 
 def morse_plot(d_fit, a_fit, r0_fit, bond_lengths, energies, e_single):
     """
@@ -104,9 +116,9 @@ def morse_plot(d_fit, a_fit, r0_fit, bond_lengths, energies, e_single):
 
     morse_values = morse_potential(bond_lengths, d_fit, a_fit, r0_fit, e_single)
 
-    plt.scatter(bond_lengths, energies, label='Generated samples')
+    plt.scatter(bond_lengths, energies, label='Generated samples', s=7.5)
     plt.plot(bond_lengths, morse_values, label='Fitted Morse Potential')
-    plt.ylabel('Potential (Ht)')
-    plt.xlabel('Bond Length (a.u.)')
+    plt.ylabel('Potential')
+    plt.xlabel('Bond Length')
     plt.legend()
     plt.show()

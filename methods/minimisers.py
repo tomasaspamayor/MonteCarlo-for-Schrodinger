@@ -2,6 +2,8 @@
 Module to hold all the function minimising methods.
 """
 import numpy as np
+import matplotlib.pyplot as plt
+
 import methods.pdfs as pdfs
 import methods.sampling as samp
 import methods.hamiltonians as ham
@@ -296,7 +298,7 @@ def hydrogen_wavefunction_optimiser_gd(theta, domain=np.array([[-4, 4], [-4, 4],
 
     return theta_values[-1], theta_values, energy_values
 
-# Hydrogen Molecule Methods:
+# Hydrogen Molecule Methods: ## Add normal gradient descent.
 
 def h2_optimiser_vmc(theta, start, bond_length, stepsize=0.5, num_samples=50000,
                       alpha=0.05, m=100, eps=1e-3, burnin_val=5000):
@@ -364,6 +366,46 @@ def h2_optimiser_vmc(theta, start, bond_length, stepsize=0.5, num_samples=50000,
     i_min = np.argmin(energy_history)
     theta_opt = theta_history[i_min]
     energy_opt = energy_history[i_min]
+    iterations = np.arange(len(energy_history))
 
     print(f"Optimised theta = {theta_opt}, energy = {energy_opt:.6f}")
-    return theta_opt, energy_opt, theta_history, energy_history
+    return iterations, theta_opt, energy_opt, theta_history, energy_history
+
+def h2_optimiser_plot(iterations, e_history, theta_history):
+    """
+    Visualise the results and process produced by the H_2 optimiser.
+    Generates a plot for the energy values throughout the iterations, and one
+    where the three parameter components' evolution is shown.
+    
+    Args:
+    iterations (list): Iterations indexes.
+    e_history (list): Respective energies.
+    theta_history (list): Respective theta values.
+
+    Returns:
+    plt.plot: The energy evolution.
+    plt.plot: The parameter evolution.
+    """
+
+    # Plot energy convergence.
+    plt.figure(figsize=(7, 4))
+    plt.plot(iterations, e_history, linewidth=2)
+    plt.grid(alpha=0.3)
+    plt.xlabel("Iteration", fontsize=12)
+    plt.ylabel("Molecule Energy", fontsize=12)
+    plt.title("Energy Convergence", fontsize=14)
+    plt.tight_layout()
+    plt.show()
+
+    # Plot parameter convergence.
+    plt.figure(figsize=(7, 4))
+    plt.plot(iterations, theta_history[:, 0], label='Theta 1', linewidth=2)
+    plt.plot(iterations, theta_history[:, 1], label='Theta 2', linewidth=2)
+    plt.plot(iterations, theta_history[:, 2], label='Theta 3', linewidth=2)
+    plt.grid(alpha=0.3)
+    plt.legend(fontsize=11)
+    plt.xlabel("Iteration", fontsize=12)
+    plt.ylabel("Theta Values", fontsize=12)
+    plt.title("Parameter Evolution", fontsize=14)
+    plt.tight_layout()
+    plt.show()

@@ -1,6 +1,6 @@
 """
 See the script to solve the different questions with the methods defined
-in other files. ## Check convergence method in molecule. Revise potential. Errors?
+in other files. ## More Hermites ## Recuperate gradient descent method for comparison. ## Errors?
 """
 #%% Imports and constants
 
@@ -10,9 +10,9 @@ import numpy as np
 import methods.errors as err
 import methods.local_energy as le
 import methods.sampling as samp
-import methods.pdfs as pdfs
-import methods.minimisers as minimisers
-import methods.morse as morse
+from methods import pdfs
+from methods import minimisers
+from methods import morse
 
 hermite_coeffs = [
     [1],
@@ -85,7 +85,6 @@ for k in range(P):
     samples_wf_mh = samp.metropolis_hastings(
         pdf_qo,
         0,
-        [-4.5, 4.5],
         0.3,
         1000000,
         500000
@@ -106,10 +105,10 @@ print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_histor
 
 #%% 4 - Hydrogen Molecule Optimisation
 
-## First we plot out the original sampling:
-
+# First we plot out the original sampling:
+# Define some needed constants:
 theta = np.array([1.0, 1.0, 1.0])
-bond_length = 2
+bond_length = 2.0
 num_samples = 2000000
 q1 = np.array([0, 0, -bond_length/2])
 q2 = np.array([0, 0, bond_length/2])
@@ -133,11 +132,11 @@ samples = samp.metropolis_hastings_3d(
     burnin_val=int(num_samples*0.1),
     dimensions=6
 )
-print(f"Generated {len(samples)} samples")
+
 samp.plot_6d_samples(samples, bins=100)
 
-# We optimise the wavefunction
-theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_vmc(
+# We optimise the wavefunction with the VMC-SGD method
+iterations, theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_vmc(
     theta=[0.5, 0.5, 0.5],
     start=[0.0, 0.0, -0.5, 0.0, 0.0, 0.5],
     bond_length=2.0,
@@ -148,16 +147,9 @@ theta_opt, e_opt, th_history, e_history = minimisers.h2_optimiser_vmc(
     eps=1e-3,
     burnin_val=5000
 )
+minimisers.h2_optimiser_plot(iterations, e_history, th_history)
 
 # We plot out the optimised wavefunction
-bond_length_opt = 2
-num_samples = 2000000
-q1 = np.array([0, 0, -bond_length_opt/2])
-q2 = np.array([0, 0, bond_length_opt/2])
-start_pos = [0.1, 0, -0.7, -0.1, 0, 0.7]
-domain_6d = [[-3, 3], [-3, 3], [-3, 3],
-             [-3, 3], [-3, 3], [-3, 3]]
-
 def h2_pdf_opt(pos_6d):
     """PDF for Hydrogen Molecule"""
     r1 = pos_6d[:3]
@@ -175,13 +167,14 @@ samples_opt = samp.metropolis_hastings_3d(
     dimensions=6
 )
 
-print(f"Generated {len(samples_opt)} samples")
 samp.plot_6d_samples(samples_opt, bins=100)
 
 # Morse Potential Fitting
-
 theta_morse = theta_opt
-bond_length_vals, energy_vals = morse.bond_length_energies([0.5, 3], theta_morse, 50, num_samples=100000)
+bond_length_vals, energy_vals = morse.bond_length_energies([0.5, 3],
+                                theta_morse, 50, num_samples=100000)
 
 D_val, a_val, r0_val, pcov = morse.morse_fitting(bond_length_vals, energy_vals, 1.4)
 morse.morse_plot(D_val, a_val, r0_val, bond_length_vals, energy_vals, 1.4)
+
+print(f'Them fitted bond length is {r0_val}, and the dissociation energy {D_val}.')
