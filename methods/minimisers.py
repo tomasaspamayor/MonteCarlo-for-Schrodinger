@@ -423,7 +423,7 @@ def h_optimiser_plot(iterations, e_history, grad_history, theta_history):
 # Hydrogen Molecule Methods: ## Add normal gradient descent.
 
 def h2_optimiser_vmc(theta, start, bond_length, stepsize=0.5, num_samples=50000,
-                      alpha=0.05, m=100, eps=1e-3, burnin_val=5000):
+                      alpha=0.05, m=100, eps=1e-3, burnin_val=5000, A = 40):
     """
     Variational Monte Carlo optimiser for H2 molecule using stochastic gradient descent.
 
@@ -492,8 +492,26 @@ def h2_optimiser_vmc(theta, start, bond_length, stepsize=0.5, num_samples=50000,
     energy_opt = energy_history[i_min]
     iterations = np.arange(len(energy_history))
 
-    print(f"Optimised theta = {theta_opt}, energy = {energy_opt:.6f}")
-    return iterations, theta_opt, energy_opt, theta_history, grad_norm_history, energy_history
+    converged_theta_1 = theta_history[0][-A:]
+    theta_1_std = np.std(converged_theta_1)
+    theta_1_uncertainty_val = theta_1_std / np.sqrt(len(converged_theta_1))
+
+    converged_theta_2 = theta_history[1][-A:]
+    theta_2_std = np.std(converged_theta_2)
+    theta_2_uncertainty_val = theta_2_std / np.sqrt(len(converged_theta_2))
+
+    converged_theta_3 = theta_history[2][-A:]
+    theta_3_std = np.std(converged_theta_3)
+    theta_3_uncertainty_val = theta_3_std / np.sqrt(len(converged_theta_3))
+
+    converged_energies = energy_history[-A:]
+    energy_std = np.std(converged_energies)
+    energy_uncertainty_val = energy_std / np.sqrt(len(converged_energies))
+
+    theta_uncertainty_val = np.array([theta_1_uncertainty_val, theta_2_uncertainty_val, theta_3_uncertainty_val])
+
+    print(f"Optimised theta = {theta_opt} +- {theta_uncertainty_val}, energy = {energy_opt} +- {energy_uncertainty_val}")
+    return iterations, theta_opt, energy_opt, theta_history, grad_norm_history, energy_history, theta_uncertainty_val, energy_uncertainty_val
 
 def h2_optimiser_plot(iterations, e_history, grad_history, theta_history):
     """

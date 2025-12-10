@@ -91,3 +91,27 @@ def error_calculation(wavefunction=None, coeffs=None, n=2):
     best_error = min_errors[best_method]
 
     return best_method, best_stepsize, best_error
+
+def theta_uncertainty(theta_history, A):
+    """
+    Compute the uncertainty on the convergeing thetas.
+    
+    :param theta_history: Description
+    :param A: Description
+    """
+    converged_thetas = theta_history[-A:]
+    theta_std = np.std(converged_thetas)
+    theta_uncertainty_val = theta_std / np.sqrt(len(converged_thetas))
+    return theta_uncertainty_val
+
+def energy_uncertainty(energy_history, A):
+    """
+    Compute the uncertainty on the convergeing energies.
+    
+    theta_history: Description
+    A: Description
+    """
+    converged_energies = energy_history[-A:]
+    energy_std = np.std(converged_energies)
+    energy_uncertainty_val = energy_std / np.sqrt(len(converged_energies))
+    return energy_uncertainty_val

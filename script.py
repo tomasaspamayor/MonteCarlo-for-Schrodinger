@@ -1,6 +1,6 @@
 """
 See the script to solve the different questions with the methods defined
-in other files. ## Errors?
+in other files. ## Error in Morse potential.
 """
 #%% Imports and constants
 
@@ -117,15 +117,22 @@ diff.lap_comp_plot(1, method=8, step=optimal_stepsize) # 8th
 
 theta_guess = 0.75
 
-iterations, theta_optimal, theta_history, grad_history, energy_history = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess, m=30, stepsize=0.02, eps=1e-8)
-iterations_num, theta_optimal_num, theta_history_num, grad_history_num, energy_history_num = minimisers.hydrogen_wavefunction_optimiser_gd_num(theta_guess, step=1e-2, h=0.01, m=30, stepsize=0.02, eps=1e-8, num_samples=10000, learning_rate=0.5)
-print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_history[-1]} for Gradient Descent.')
-print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_history[-1]} for Numerical.')
+iterations, theta_optimal, theta_history, grad_history, energy_history = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess, m=100, stepsize=0.02, eps=1e-8)
+iterations_num, theta_optimal_num, theta_history_num, grad_history_num, energy_history_num = minimisers.hydrogen_wavefunction_optimiser_gd_num(theta_guess, step=1e-2, h=0.01, m=100, stepsize=0.02, eps=1e-8, num_samples=10000, learning_rate=0.5)
 
-minimisers.h_optimiser_plot(iterations, energy_history, grad_history, theta_history)
-minimisers.h_optimiser_plot(iterations_num, energy_history_num, grad_history_num, theta_history_num)
+A = 50
+theta_unc = err.theta_uncertainty(theta_history, A)
+energy_unc = err.energy_uncertainty(energy_history, A)
+theta_unc_num = err.theta_uncertainty(theta_history_num, A)
+energy_unc_num = err.energy_uncertainty(energy_history_num, A)
 
-#%% 4 - Hydrogen Molecule Optimisation
+print(f'The optimal theta value is: {theta_optimal} +- {theta_unc}, with energy: {energy_history[-1]} +- {energy_unc} for Gradient Descent.')
+print(f'The optimal theta value is: {theta_optimal} +- {theta_unc_num}, with energy: {energy_history[-1]} +- {energy_unc_num} for Numerical.')
+
+minimisers.h_optimiser_plot(iterations, energy_history, grad_history, theta_history[1:])
+minimisers.h_optimiser_plot(iterations_num, energy_history_num, grad_history_num, theta_history_num[1:])
+
+#%% 4 - Hydrogen Molecule Optimisation # MISSING ERROR ON MORSE
 
 # First we plot out the original sampling:
 # Define some needed constants:
@@ -158,7 +165,7 @@ samples = samp.metropolis_hastings_3d(
 samp.plot_6d_samples(samples, bins=100)
 
 # We optimise the wavefunction with the VMC-SGD method
-iterations, theta_opt, e_opt, th_history, grad_norm_history, e_history = minimisers.h2_optimiser_vmc(
+iterations, theta_opt, e_opt, th_history, grad_norm_history, e_history, t_unc, e_unc = minimisers.h2_optimiser_vmc(
     theta=[0.5, 0.5, 0.5],
     start=[0.0, 0.0, -0.5, 0.0, 0.0, 0.5],
     bond_length=2.0,
