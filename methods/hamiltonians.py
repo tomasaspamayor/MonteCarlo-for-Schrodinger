@@ -15,19 +15,57 @@ import methods.sampling as samp
 def energy_expectation(points, theta):
     """
     Energy expectation for hydrogen ground state.
-
-    Args:
-    points (list): The 3D points at which to evaluate the energy. 
-    theta (float): The parameter for the wavefunction
+    
+    NOTE: Modified to return the array of local energies (E_L).
     """
     r = np.linalg.norm(points, axis=1)
     with np.errstate(divide='ignore', invalid='ignore'):
         local_energies = -0.5 * (theta ** 2 - 2 * theta / r) - 1.0 / r
         local_energies = np.nan_to_num(local_energies, nan=-0.5*theta**2)
+    return local_energies
+
+def energy_expectation_num(points, theta, step):
+    """
+    Energy expectation for hydrogen ground state.
+
+    Args:
+    points (list): The 3D points at which to evaluate the energy. 
+    theta (float): The parameter for the wavefunction
+    """
+    local_energies = []
+    for point in points:
+        r = np.linalg.norm(point)
+        num_lap_psi = diff.cdm_laplacian_4th(pdfs.wavefunction_hydrogen_atom, point, theta, step)
+        psi = pdfs.wavefunction_hydrogen_atom(point, theta)
+
+        if r == 0:
+            E_L = -0.5 * theta**2
+        elif np.abs(psi) < 1e-15:
+            continue
+        else:
+            potential_energy_term = (-1.0 / r) * psi
+            H_psi = -0.5 * num_lap_psi + potential_energy_term
+            E_L = H_psi / psi
+
+        local_energies.append(E_L)
 
     return np.mean(local_energies)
 
 def energy_expectation_theta_derivative(points, theta):
+    """
+    Derivative of the energy expectation with respect to theta for hydrogen 
+    ground state using the correct VMC Gradient Formula.
+    """
+    r = np.linalg.norm(points, axis=1)
+    local_energies = energy_expectation(points, theta) 
+    dlnpsi_dtheta = -r
+    term1_scalar = np.mean(local_energies * dlnpsi_dtheta)
+    term2_scalar = np.mean(local_energies) * np.mean(dlnpsi_dtheta)
+    grad_e = 2 * (term1_scalar - term2_scalar)
+
+    return grad_e
+
+def energy_expectation_theta_derivative_num(points, theta, h, step):
     """
     Derivative of the energy expectation with respect to theta for hydrogen 
     ground state.
@@ -36,14 +74,13 @@ def energy_expectation_theta_derivative(points, theta):
     points (list): The 3D points at which to evaluate the energy. 
     theta (float): The parameter for the wavefunction
     """
-    r = np.linalg.norm(points, axis=1)
+    theta_plus_h= theta + h
+    E_plus = energy_expectation_num(points, theta_plus_h, step)
+    theta_minus_h = theta - h
+    E_minus = energy_expectation_num(points, theta_minus_h, step)
 
-    local_energies = -0.5 * (theta ** 2 - 2 * theta / r) - 1.0 / r
-    e_avg = np.mean(local_energies)
-    dlnpsi_dtheta = - r
-    grad_e = 2 * (np.mean(local_energies * dlnpsi_dtheta) - e_avg * np.mean(dlnpsi_dtheta))
-
-    return grad_e
+    grad_e_fd = (E_plus - E_minus) / (2 * h)
+    return grad_e_fd
 
 # Methods for the Hydrogen Molecule:
 

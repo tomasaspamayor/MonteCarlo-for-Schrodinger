@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 
 import methods.pdfs as pdfs
 
+plt.style.use('seaborn-v0_8-paper')
+
 ## Two different sampling methods. The Metropolis-Hastings in 3D allows virtually
 ## any dimension of samples. Must be specified in args.
 

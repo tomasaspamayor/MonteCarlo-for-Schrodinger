@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import methods.sampling as samp
 import methods.hamiltonians as ham
 
+plt.style.use('seaborn-v0_8-paper')
+
 def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, stepsize=0.15):
     """
     Compute the energies of the molecule over a range of bond lenghts.

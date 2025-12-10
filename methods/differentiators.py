@@ -9,8 +9,12 @@ order.
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import methods.polynomials as poly
+from methods import pdfs
+
+plt.style.use('seaborn-v0_8-paper')
 
 ### The first of these calculate the derivatives by looking at the function
 ### a given step away from each sample. You therefore need the function to call.
@@ -415,14 +419,21 @@ def analytical_second_derivative_qho(n, x):
     """
     Here.
     """
-    coeffs =[[1], [0, 2], [-2, 0, 4], [0, -12, 0, 8], [12, 0, -48, 0, 16]]
+    coeffs = [
+    [1],
+    [0, 2],
+    [-2, 0, 4],
+    [0, -12, 0, 8],
+    [12, 0, -48, 0, 16],
+    [0, 120, 0, -160, 0, 32],
+    [-120, 0, 720, 0, -480, 0, 64]  ]
+
     coeff = coeffs[n]
     H = np.polyval(coeff[::-1], x)
     H_prime = np.polyval(np.polyder(coeff[::-1]), x)
     H_double_prime = np.polyval(np.polyder(coeff[::-1], 2), x)
     exponential = np.exp(-x**2 / 2)
     return exponential * (H_double_prime - 2*x*H_prime + (x**2 - 1)*H)
-
 ## CDM to solve a Laplacian.
 
 def cdm_laplacian(func, point, step=0.01):
@@ -457,7 +468,7 @@ def cdm_laplacian(func, point, step=0.01):
 
     return fxx + fyy + fzz
 
-def cdm_laplacian_4th(func, point, step=0.01):
+def cdm_laplacian_4th(func, point, theta, step=0.01):
     """
     4th-order central difference Laplacian. More stable than 8th-order.
 
@@ -470,30 +481,157 @@ def cdm_laplacian_4th(func, point, step=0.01):
     float: Laplacian value.
     """
     x, y, z = point
-    f = func(point)
-    
+    f = func(point, theta)
+
     # x-direction
-    f_x2 = func([x + 2*step, y, z])
-    f_x1 = func([x + step, y, z])
-    f_x_1 = func([x - step, y, z])
-    f_x_2 = func([x - 2*step, y, z])
-    
-    fxx = (-f_x2 + 16*f_x1 - 30*f + 16*f_x_1 - f_x_2) / (12 * step**2)
-    
-    # y-direction  
-    f_y2 = func([x, y + 2*step, z])
-    f_y1 = func([x, y + step, z])
-    f_y_1 = func([x, y - step, z])
-    f_y_2 = func([x, y - 2*step, z])
-    
-    fyy = (-f_y2 + 16*f_y1 - 30*f + 16*f_y_1 - f_y_2) / (12 * step**2)
-    
+    f_x2 = func([x + 2*step, y, z], theta)
+    f_x1 = func([x + step, y, z], theta)
+    f_x_1 = func([x - step, y, z], theta)
+    f_x_2 = func([x - 2*step, y, z], theta)
+
+    fxx = (
+        -f_x2 + 16*f_x1 - 30*f + 16*f_x_1 - f_x_2
+    ) / (12 * step**2)
+
+    # y-direction
+    f_y2 = func([x, y + 2*step, z], theta)
+    f_y1 = func([x, y + step, z], theta)
+    f_y_1 = func([x, y - step, z], theta)
+    f_y_2 = func([x, y - 2*step, z], theta)
+
+    fyy = (
+        -f_y2 + 16*f_y1 - 30*f + 16*f_y_1 - f_y_2
+    ) / (12 * step**2)
+
     # z-direction
-    f_z2 = func([x, y, z + 2*step])
-    f_z1 = func([x, y, z + step])
-    f_z_1 = func([x, y, z - step])
-    f_z_2 = func([x, y, z - 2*step])
-    
-    fzz = (-f_z2 + 16*f_z1 - 30*f + 16*f_z_1 - f_z_2) / (12 * step**2)
-    
+    f_z2 = func([x, y, z + 2*step], theta)
+    f_z1 = func([x, y, z + step], theta)
+    f_z_1 = func([x, y, z - step], theta)
+    f_z_2 = func([x, y, z - 2*step], theta)
+
+    fzz = (
+        -f_z2 + 16*f_z1 - 30*f + 16*f_z_1 - f_z_2
+    ) / (12 * step**2)
+
     return fxx + fyy + fzz
+
+def cdm_laplacian_8th(func, point, theta, step=0.01):
+    """
+    4th-order central difference Laplacian. More stable than 8th-order.
+
+    Args:
+    func (callable): The function to be differentiated.
+    point (list): Point at which to compute the Laplacian (3D).
+    step (float): The step at which to compute the finite difference.
+
+    Returns:
+    float: Laplacian value.
+    """
+    x, y, z = point
+    f = func(point, theta)
+
+    # x-direction
+    f_x4 = func([x + 4*step, y, z], theta)
+    f_x3 = func([x + 3*step, y, z], theta)
+    f_x2 = func([x + 2*step, y, z], theta)
+    f_x1 = func([x + step, y, z], theta)
+    f_x_1 = func([x - step, y, z], theta)
+    f_x_2 = func([x - 2*step, y, z], theta)
+    f_x_3 = func([x - 3*step, y, z], theta)
+    f_x_4 = func([x - 4*step, y, z], theta)
+
+    fxx = (
+        -f_x4 + 32*f_x3 - 168*f_x2 + 672*f_x1 - 1260*f + 
+        672*f_x_1 - 168*f_x_2 + 32*f_x_3 - f_x_4
+    ) / (840 * step**2)
+
+    # y-direction
+    f_y4 = func([x, y + 4*step, z], theta)
+    f_y3 = func([x, y + 3*step, z], theta)
+    f_y2 = func([x, y + 2*step, z], theta)
+    f_y1 = func([x, y + step, z], theta)
+    f_y_1 = func([x, y - step, z], theta)
+    f_y_2 = func([x, y - 2*step, z], theta)
+    f_y_3 = func([x, y - 3*step, z], theta)
+    f_y_4 = func([x, y - 4*step, z], theta)
+
+    fyy = (
+        -f_y4 + 32*f_y3 - 168*f_y2 + 672*f_y1 - 1260*f + 
+        672*f_y_1 - 168*f_y_2 + 32*f_y_3 - f_y_4
+    ) / (840 * step**2)
+
+    # z-direction
+    f_z4 = func([x, y, z + 4*step], theta)
+    f_z3 = func([x, y, z + 3*step], theta)
+    f_z2 = func([x, y, z + 2*step], theta)
+    f_z1 = func([x, y, z + step], theta)
+    f_z_1 = func([x, y, z - step], theta)
+    f_z_2 = func([x, y, z - 2*step], theta)
+    f_z_3 = func([x, y, z - 3*step], theta)
+    f_z_4 = func([x, y, z - 4*step], theta)
+
+    fzz = (
+        -f_z4 + 32*f_z3 - 168*f_z2 + 672*f_z1 - 1260*f + 
+        672*f_z_1 - 168*f_z_2 + 32*f_z_3 - f_z_4
+    ) / (840 * step**2)
+
+    return fxx + fyy + fzz
+
+def laplacian_analytical(theta, point):
+    """
+    Computes the analytical value of the hydrogen's wavefunction Laplacian.
+    """
+    r = np.linalg.norm(point)
+    
+    wavefunction_value = np.exp(-theta * r)
+    laplacian_value = wavefunction_value * (theta**2 - 2 * theta / r)
+    
+    return laplacian_value
+
+def laplacian_comparison(func, theta, point, method=1, step=0.01):
+    """
+    Comparison of the analytical and numerical Laplacian method.
+    """
+    if method == 8:
+        vals_ap = cdm_laplacian_8th(func, point, theta, step)
+    else:
+        vals_ap = cdm_laplacian_4th(func, point, theta, step)
+
+    vals_an = laplacian_analytical(theta, point)
+    return vals_ap, vals_an
+
+def lap_comp_plot(theta, bounds=np.array([-3,3]), step=0.01, method=1):
+    """
+    Plot the relation between the numerical and analytical Laplacian.
+    """
+    check_x_coords = np.linspace(bounds[0], bounds[1], 1000)
+    check_points = np.zeros((1000, 3))
+    check_points[:, 0] = check_x_coords
+
+    numerical_laplacians = []
+    analytical_laplacians = []
+    radial_distances = []
+
+    for point in check_points:
+        r = np.linalg.norm(point)
+        if r == 0:
+            continue
+        num_lap, analy_lap = laplacian_comparison(
+            pdfs.wavefunction_hydrogen_atom, theta, point, method, step)
+        numerical_laplacians.append(num_lap)
+        analytical_laplacians.append(analy_lap)
+        radial_distances.append(r)
+
+    numerical_laplacians = np.array(numerical_laplacians)
+    analytical_laplacians = np.array(analytical_laplacians)
+    radial_distances = np.array(radial_distances)
+
+    absolute_error = np.abs(numerical_laplacians - analytical_laplacians)
+
+    plt.figure(figsize=(10, 6))
+    plt.loglog(radial_distances, absolute_error, 'b.', markersize=5)
+    plt.title(f'Absolute Error of Numerical Laplacian vs. Radial Distance (theta={theta}, h={step})')
+    plt.xlabel('Radial Distance (log scale)')
+    plt.ylabel('Absolute Error (log scale)')
+    plt.grid(True, which="both", linestyle='--', alpha=0.6)
+    plt.show()

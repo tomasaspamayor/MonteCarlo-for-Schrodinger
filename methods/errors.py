@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import methods.differentiators as diff
 import methods.pdfs as pdfs
 
+plt.style.use('seaborn-v0_8-paper')
+
 def error_calculation(wavefunction=None, coeffs=None, n=2):
     """
     Calculate and plot the errors in the finite difference method.
@@ -22,7 +24,14 @@ def error_calculation(wavefunction=None, coeffs=None, n=2):
         wavefunction = pdfs.wavefunction_qho
 
     if coeffs is None:
-        coeffs =[[1], [0, 2], [-2, 0, 4], [0, -12, 0, 8], [12, 0, -48, 0, 16]]
+        coeffs = [
+        [1],
+        [0, 2],
+        [-2, 0, 4],
+        [0, -12, 0, 8],
+        [12, 0, -48, 0, 16],
+        [0, 120, 0, -160, 0, 32],
+        [-120, 0, 720, 0, -480, 0, 64]  ]
 
     x = np.linspace(-3, 3, 1000)
     h_values = np.logspace(-12, 1, 120)
@@ -59,7 +68,7 @@ def error_calculation(wavefunction=None, coeffs=None, n=2):
     plt.figure(figsize=(10, 7))
 
     colors = ['blue', 'green', 'red', 'orange', 'purple']
-    markers = ['o', 's', '^', 'D', 'v']
+    markers = ['o', 'o', 'o', 'o', 'o']
 
     for (name, method_errors), color, marker in zip(errors_vals.items(), colors, markers):
         plt.loglog(h_values, method_errors, marker=marker, markersize=4,
@@ -77,4 +86,8 @@ def error_calculation(wavefunction=None, coeffs=None, n=2):
     plt.tight_layout()
     plt.show()
 
-    return name, optimal_h[name], min_errors[name]
+    best_method = min(min_errors, key=min_errors.get)
+    best_stepsize = optimal_h[best_method]
+    best_error = min_errors[best_method]
+
+    return best_method, best_stepsize, best_error

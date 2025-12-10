@@ -106,7 +106,7 @@ def wavefunction_qho_pdf(x, n, coeffs):
 
 # Hydrogen Atom Methods:
 
-def wavefunction_hydrogen_atom(samples, theta):
+def wavefunction_hydrogen_atom(samples, theta=1):
     """
     Calculate the hydrogen atom's wavefunction.
 
@@ -117,7 +117,7 @@ def wavefunction_hydrogen_atom(samples, theta):
     Returns:
     np.array: List of wavefunction values at the sample points.
     """
-    r = np.linalg.norm(samples, axis=1)
+    r = np.linalg.norm(samples)
     vals = np.array(np.exp(-theta * r))
 
     return vals
