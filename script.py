@@ -1,6 +1,6 @@
 """
 See the script to solve the different questions with the methods defined
-in other files. ## More Hermites ## Recuperate gradient descent method for comparison. ## Errors?
+in other files. ## Errors?
 """
 #%% Imports and constants
 
@@ -114,12 +114,11 @@ for k in range(P):
 # We check the numerical Laplacian works well:
 diff.lap_comp_plot(1, step=1e-4) # 4th
 diff.lap_comp_plot(1, method=8, step=optimal_stepsize) # 8th
-#%%
-# We minimise first with a simple gradient descent.
-theta_guess = 0.7
+
+theta_guess = 0.75
 
 iterations, theta_optimal, theta_history, grad_history, energy_history = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess, m=30, stepsize=0.02, eps=1e-8)
-iterations_num, theta_optimal_num, theta_history_num, grad_history_num, energy_history_num = minimisers.hydrogen_wavefunction_optimiser_gd_num(theta_guess, step=1e-4, h=0.001, m=30, stepsize=0.02, eps=1e-8)
+iterations_num, theta_optimal_num, theta_history_num, grad_history_num, energy_history_num = minimisers.hydrogen_wavefunction_optimiser_gd_num(theta_guess, step=1e-2, h=0.01, m=30, stepsize=0.02, eps=1e-8, num_samples=10000, learning_rate=0.5)
 print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_history[-1]} for Gradient Descent.')
 print(f'The optimal theta value is: {theta_optimal}, with energy: {energy_history[-1]} for Numerical.')
 

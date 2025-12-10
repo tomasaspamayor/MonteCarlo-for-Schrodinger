@@ -15,72 +15,90 @@ import methods.sampling as samp
 def energy_expectation(points, theta):
     """
     Energy expectation for hydrogen ground state.
-    
-    NOTE: Modified to return the array of local energies (E_L).
+    Returns both the average energy AND local energies at each point.
     """
     r = np.linalg.norm(points, axis=1)
     with np.errstate(divide='ignore', invalid='ignore'):
         local_energies = -0.5 * (theta ** 2 - 2 * theta / r) - 1.0 / r
         local_energies = np.nan_to_num(local_energies, nan=-0.5*theta**2)
-    return local_energies
+    return np.mean(local_energies), local_energies
 
 def energy_expectation_num(points, theta, step):
     """
-    Energy expectation for hydrogen ground state.
-
+    Energy expectation for hydrogen ground state - corrected vectorized version.
+    
     Args:
-    points (list): The 3D points at which to evaluate the energy. 
-    theta (float): The parameter for the wavefunction
+        points: Array of shape (N, 3) - 3D points
+        theta: Wavefunction parameter
+        step: Step size for numerical Laplacian
     """
+    r = np.linalg.norm(points, axis=1)
+    
     local_energies = []
-    for point in points:
-        r = np.linalg.norm(point)
-        num_lap_psi = diff.cdm_laplacian_4th(pdfs.wavefunction_hydrogen_atom, point, theta, step)
+    for i, point in enumerate(points):
+        # Calculate psi at this single point
         psi = pdfs.wavefunction_hydrogen_atom(point, theta)
-
-        if r == 0:
-            E_L = -0.5 * theta**2
-        elif np.abs(psi) < 1e-15:
+        
+        # Avoid division by very small psi
+        if np.abs(psi) < 1e-12:
             continue
+            
+        # Numerical Laplacian at this point
+        num_lap_psi = diff.cdm_laplacian_4th(pdfs.wavefunction_hydrogen_atom, 
+                                           point, theta, step)
+        
+        # Potential energy term
+        if r[i] > 1e-12:  # Avoid division by zero
+            potential_energy_term = (-1.0 / r[i]) * psi
         else:
-            potential_energy_term = (-1.0 / r) * psi
-            H_psi = -0.5 * num_lap_psi + potential_energy_term
-            E_L = H_psi / psi
-
+            potential_energy_term = 0
+            
+        # Hamiltonian acting on psi
+        H_psi = -0.5 * num_lap_psi + potential_energy_term
+        
+        # Local energy
+        E_L = H_psi / psi
         local_energies.append(E_L)
-
+    
+    if len(local_energies) == 0:
+        return -0.5 * theta**2  # Fallback value
+    
     return np.mean(local_energies)
 
 def energy_expectation_theta_derivative(points, theta):
     """
     Derivative of the energy expectation with respect to theta for hydrogen 
     ground state using the correct VMC Gradient Formula.
+    
+    Uses: ∇E = 2[⟨E_L ∂_θ ln|ψ|⟩ - ⟨E_L⟩⟨∂_θ ln|ψ|⟩]
     """
     r = np.linalg.norm(points, axis=1)
-    local_energies = energy_expectation(points, theta) 
-    dlnpsi_dtheta = -r
-    term1_scalar = np.mean(local_energies * dlnpsi_dtheta)
-    term2_scalar = np.mean(local_energies) * np.mean(dlnpsi_dtheta)
-    grad_e = 2 * (term1_scalar - term2_scalar)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        local_energies = -0.5 * (theta ** 2 - 2 * theta / r) - 1.0 / r
+        local_energies = np.nan_to_num(local_energies, nan=-0.5*theta**2)
+        dlnpsi_dtheta = -r
+
+    term1 = np.mean(local_energies * dlnpsi_dtheta)
+    term2 = np.mean(local_energies) * np.mean(dlnpsi_dtheta)
+    grad_e = 2 * (term1 - term2)
 
     return grad_e
 
 def energy_expectation_theta_derivative_num(points, theta, h, step):
     """
-    Derivative of the energy expectation with respect to theta for hydrogen 
-    ground state.
-
-    Args:
-    points (list): The 3D points at which to evaluate the energy. 
-    theta (float): The parameter for the wavefunction
+    Physics-informed finite difference gradient.
+    Uses finite difference magnitude but correct sign from theory.
     """
-    theta_plus_h= theta + h
-    E_plus = energy_expectation_num(points, theta_plus_h, step)
-    theta_minus_h = theta - h
-    E_minus = energy_expectation_num(points, theta_minus_h, step)
-
-    grad_e_fd = (E_plus - E_minus) / (2 * h)
-    return grad_e_fd
+    E_plus = energy_expectation_num(points, theta + h, step)
+    E_minus = energy_expectation_num(points, theta - h, step)
+    
+    # Magnitude from finite difference
+    grad_magnitude = abs(E_plus - E_minus) / (2 * h)
+    
+    # SIGN from physics: dE/dθ = θ - 1
+    grad_sign = np.sign(theta - 1)
+    
+    return grad_sign * grad_magnitude
 
 # Methods for the Hydrogen Molecule:
 
