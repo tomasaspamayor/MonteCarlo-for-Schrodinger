@@ -27,6 +27,7 @@ def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, s
     """
     bond_lengths = np.linspace(bl_range[0], bl_range[-1], n)
     energies = []
+    energies_uncertainties = []
 
     for b in bond_lengths:
         # sample from the PDF corresponding to THIS bond length
@@ -40,11 +41,14 @@ def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, s
             burnin_val=burnin
         )
 
-        e = ham.h2_energy_expectation(samples, b, theta)
+        e, energy_locals = ham.h2_energy_expectation(samples, b, theta)
+        e_unc = ham.h2_energy_expectation_uncertainty(energy_locals)
         energies.append(e)
+        energies_uncertainties.append(e_unc)
+
         print(f'Bond length {b} calculated.')
 
-    return bond_lengths, np.array(energies)
+    return bond_lengths, np.array(energies), np.array(energies_uncertainties)
 
 def morse_potential(r, d, a, r0, e_single):
     """
@@ -62,7 +66,7 @@ def morse_potential(r, d, a, r0, e_single):
     """
     return d * (1 - np.exp(- a * (r - r0))) ** 2 - d + 2 * e_single
 
-def morse_fitting(bond_lengths, energies, e_single,
+def morse_fitting(bond_lengths, energies, uncertainties, e_single,
                   p0=np.array([0.17, 1.0, 1.4])):
     """
     Fit Morse potential parameters (D, A, r0) to computed energies.
@@ -84,12 +88,13 @@ def morse_fitting(bond_lengths, energies, e_single,
     def morse_func_fit(r, D, A, r0):
         return morse_potential(r, D, A, r0, e_single)
 
-    # Run the fit
     popt, pcov = curve_fit(
         morse_func_fit,
         bond_lengths,
         energies,
         p0=p0,
+        sigma = uncertainties,
+        absolute_sigma=True,
         maxfev=20000
     )
 

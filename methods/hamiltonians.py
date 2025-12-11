@@ -91,13 +91,13 @@ def energy_expectation_theta_derivative_num(points, theta, h, step):
     """
     E_plus = energy_expectation_num(points, theta + h, step)
     E_minus = energy_expectation_num(points, theta - h, step)
-    
+
     # Magnitude from finite difference
     grad_magnitude = abs(E_plus - E_minus) / (2 * h)
-    
+
     # SIGN from physics: dE/dθ = θ - 1
     grad_sign = np.sign(theta - 1)
-    
+
     return grad_sign * grad_magnitude
 
 # Methods for the Hydrogen Molecule:
@@ -152,15 +152,40 @@ def h2_energy_expectation(samples_6d, bond_length, theta):
     q1 = np.array([0, 0, -bond_length / 2])
     q2 = np.array([0, 0, bond_length / 2])
 
+    local_energies = []
     energy = 0.0
     m = len(samples_6d)
     for i in range(m):
         r1 = samples_6d[i, :3]
         r2 = samples_6d[i, 3:]
         energy_i = le.h2_le_sym(r1, r2, theta, q1, q2)
+        local_energies.append(energy_i)
         energy += energy_i
 
-    return energy / m
+    return (energy / m), local_energies
+
+def h2_energy_expectation_uncertainty(local_energies):
+    """
+    Returns the Standard Error of the Mean for a sampling of local energies.
+    
+    Args:
+    local_energies (list): The computed local energies.
+
+    Returns:
+    float: The standard error of the mean.
+    """
+    diffs= 0.0
+    mean_energy = np.mean(local_energies)
+    M = len(local_energies)
+    factor = 1 / (M - 1)
+    for energy in local_energies:
+        val_energy = (energy - mean_energy) ** 2
+        diffs += val_energy
+
+    var_sqr = factor * diffs
+    sem = np.sqrt(var_sqr / M)
+
+    return sem
 
 def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, stepsize=0.15):
     """

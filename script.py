@@ -132,7 +132,9 @@ print(f'The optimal theta value is: {theta_optimal} +- {theta_unc_num}, with ene
 minimisers.h_optimiser_plot(iterations, energy_history, grad_history, theta_history[1:])
 minimisers.h_optimiser_plot(iterations_num, energy_history_num, grad_history_num, theta_history_num[1:])
 
-#%% 4 - Hydrogen Molecule Optimisation # MISSING ERROR ON MORSE
+e_single = energy_history[-1]
+
+#%% 4 - Hydrogen Molecule Optimisation
 
 # First we plot out the original sampling:
 # Define some needed constants:
@@ -164,7 +166,6 @@ samples = samp.metropolis_hastings_3d(
 
 samp.plot_6d_samples(samples, bins=100)
 
-# We optimise the wavefunction with the VMC-SGD method
 iterations, theta_opt, e_opt, th_history, grad_norm_history, e_history, t_unc, e_unc = minimisers.h2_optimiser_vmc(
     theta=[0.5, 0.5, 0.5],
     start=[0.0, 0.0, -0.5, 0.0, 0.0, 0.5],
@@ -172,13 +173,12 @@ iterations, theta_opt, e_opt, th_history, grad_norm_history, e_history, t_unc, e
     stepsize=0.5,
     num_samples=200000,
     alpha=0.05,
-    m=200,
+    m=40,
     eps=1e-3,
     burnin_val=10000
 )
 minimisers.h2_optimiser_plot(iterations, e_history, grad_norm_history, th_history)
 
-# We plot out the optimised wavefunction
 def h2_pdf_opt(pos_6d):
     """PDF for Hydrogen Molecule"""
     r1 = pos_6d[:3]
@@ -198,14 +198,17 @@ samples_opt = samp.metropolis_hastings_3d(
 
 samp.plot_6d_samples(samples_opt, bins=100)
 
-# Morse Potential Fitting
 theta_morse = theta_opt
-bond_length_vals, energy_vals = morse.bond_length_energies([0.5, 3],
+bond_length_vals, energy_vals, energy_uncertainites = morse.bond_length_energies([0.5, 3],
                                 theta_morse, 200, num_samples=1000000)
 
-D_val, a_val, r0_val, pcov = morse.morse_fitting(bond_length_vals, energy_vals, 1.4)
+D_val, a_val, r0_val, pcov = morse.morse_fitting(bond_length_vals, energy_vals, energy_uncertainites, e_single)
 morse.morse_plot(D_val, a_val, r0_val, bond_length_vals, energy_vals, 1.4)
 
-print(f'Them fitted bond length is {r0_val}, and the dissociation energy {D_val}.')
+D_unc = np.sqrt(pcov[0, 0])
+A_unc = np.sqrt(pcov[1, 1])
+r0_unc = np.sqrt(pcov[2, 2])
+
+print(f'The fitted bond length is {r0_val} +- {r0_unc}, and the dissociation energy {D_val} +- {D_unc}.')
 
 # %%
