@@ -2,7 +2,7 @@
 Here I store some previous iterations' data. Will delete before finishing.
 """
 import numpy as np
-import methods.minimisers as mins
+#import methods.minimisers as mins
 
 # Trial I
 
@@ -294,7 +294,7 @@ optimal_theta = [1.07754626, 0.63276047, 0.47727794]
 optimal_energy = -1.116779
 optimal_grad_norm = 0.046774
 
-mins.h2_optimiser_plot(iterations, energy_history, grad_history, theta_history)
+#mins.h2_optimiser_plot(iterations, energy_history, grad_history, theta_history)
 
 # Morse 11/12
 

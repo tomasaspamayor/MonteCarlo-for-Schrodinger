@@ -1,6 +1,6 @@
 """
 See the script to solve the different questions with the methods defined
-in other files. ## Error in Morse potential.
+in other files. ## Optimal step in proposal function for acceptance rate.
 """
 #%% Imports and constants
 
@@ -14,6 +14,7 @@ import methods.differentiators as diff
 from methods import pdfs
 from methods import minimisers
 from methods import morse
+#import data
 
 hermite_coeffs = [
     [1],
@@ -69,19 +70,25 @@ samples_exponential_r = samp.rejection(pdfs.normalized_exponential, 1, 0, 1, 250
 samp.plot_samples(pdfs.normalized_gaussian, [-1, 1], samples_gaussian_r, 75, 0)
 samp.plot_samples(pdfs.normalized_exponential, [0, 1], samples_exponential_r, 75, 0)
 
-samples_gaussian_mh = samp.metropolis_hastings(pdfs.normalized_gaussian, 0, 0.1, 250000)
-samples_exponential_mh = samp.metropolis_hastings(pdfs.normalized_exponential,
-                                                     0, 0.1, 250000, 20000)
-samp.plot_samples(pdfs.normalized_gaussian, [-1, 1], samples_gaussian_mh, 50, 1)
+samples_gaussian_mh = samp.metropolis_hastings_opt(
+    pdfs.normalized_gaussian, 
+    start=0.0,
+    stepsize=0.05,
+    num_samples=500000,
+    burnin_val=250000,
+    adapt_interval=500
+)
+samples_exponential_mh = samp.metropolis_hastings_opt(
+    pdfs.normalized_exponential,
+    start=0.0,
+    stepsize=0.05,
+    num_samples=250000,
+    burnin_val=20000,
+    adapt_interval=500
+)
+
+samp.plot_samples(pdfs.normalized_gaussian, [-1,1], samples_gaussian_mh, 75, 1)
 samp.plot_samples(pdfs.normalized_exponential, [0, 1], samples_exponential_mh, 50, 1)
-
-samples_gaussian_r_3d = samp.rejection_3d(pdfs.gaussian_3d, 0, [[-0.5,0.5], [-0.5,0.5],
-                                                [-0.5,0.5]], 2500000, 10000000, m=None)
-samples_gaussian_mh_3d = samp.metropolis_hastings_3d(pdfs.gaussian_3d, [0, 0, 0], [[-0.5, 0.5],
-                                        [-0.5, 0.5], [-0.5, 0.5]], 0.1, 1000000, 20000)
-
-samp.plot_3d_samples(samples_gaussian_r_3d, 75, 0)
-samp.plot_3d_samples(samples_gaussian_mh_3d, 75, 1)
 
 P = 6
 
@@ -96,12 +103,13 @@ for k in range(P):
 
 for k in range(P):
     pdf_qo = partial(pdfs.wavefunction_qho_pdf, n=k, coeffs=hermite_coeffs)
-    samples_wf_mh = samp.metropolis_hastings(
+    samples_wf_mh = samp.metropolis_hastings_opt(
         pdf_qo,
-        0,
-        0.3,
-        1000000,
-        500000
+        start=0.0,
+        stepsize=0.3,
+        num_samples=1000000,
+        burnin_val=500000,
+        adapt_interval=500,
     )
     samp.plot_samples(pdf_qo, [-4.5, 4.5], samples_wf_mh, 200, 1)
     local_energies_mh = le.local_energy_qho_numerical(samples_wf_mh, optimal_stepsizes[P],
@@ -111,6 +119,7 @@ for k in range(P):
 
 #%% 3 - Hydrogen Ground State Optimising
 
+optimal_stepsize = 0.030718143012686966
 # We check the numerical Laplacian works well:
 diff.lap_comp_plot(1, step=1e-4) # 4th
 diff.lap_comp_plot(1, method=8, step=optimal_stepsize) # 8th
@@ -154,12 +163,13 @@ def h2_pdf(pos_6d):
     wf = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta, q1, q2)
     return wf ** 2
 
-samples = samp.metropolis_hastings_3d(
+samples = samp.metropolis_hastings_3d_opt(
     pdf=h2_pdf,
     start=start_pos,
     domain=domain_6d,
     stepsize=0.1,
     num_samples=num_samples,
+    adapt_interval=2000,
     burnin_val=int(num_samples*0.1),
     dimensions=6
 )
@@ -186,12 +196,13 @@ def h2_pdf_opt(pos_6d):
     wf = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta_opt, q1, q2)
     return wf ** 2
 
-samples_opt = samp.metropolis_hastings_3d(
+samples_opt = samp.metropolis_hastings_3d_opt(
     pdf=h2_pdf_opt,
     start=start_pos,
     domain=domain_6d,
     stepsize=0.1,
     num_samples=num_samples,
+    adapt_interval=2000,
     burnin_val=int(num_samples*0.1),
     dimensions=6
 )
@@ -201,6 +212,11 @@ samp.plot_6d_samples(samples_opt, bins=100)
 theta_morse = theta_opt
 bond_length_vals, energy_vals, energy_uncertainites = morse.bond_length_energies([0.5, 3],
                                 theta_morse, 200, num_samples=1000000)
+
+#bond_length_vals = data.bond_length_vals
+#N = len(bond_length_vals)
+#energy_vals = data.energy_vals
+#energy_uncertainites = np.ones(N)
 
 D_val, a_val, r0_val, pcov = morse.morse_fitting(bond_length_vals, energy_vals, energy_uncertainites, e_single)
 morse.morse_plot(D_val, a_val, r0_val, bond_length_vals, energy_vals, 1.4)

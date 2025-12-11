@@ -219,7 +219,7 @@ def hydrogen_wavefunction_optimiser(theta, domain=np.array([[-4, 4], [-4, 4], [-
     return theta_values[-1], theta_values, energy_values
 
 def hydrogen_wavefunction_optimiser_gd(theta, domain=np.array([[-4, 4], [-4, 4], [-4, 4]]),
-                                       method=False, stepsize=0.05, num_samples=10000,
+                                       method=True, stepsize=0.05, num_samples=100000, burnin_val=200000, adapt_interval=750, 
                                        m=50, eps=1e-5, learning_rate=0.1, track_progress=True):
     """
     Optimise Hydrogen wavefunction parameter theta using Gradient Descent.
@@ -228,7 +228,7 @@ def hydrogen_wavefunction_optimiser_gd(theta, domain=np.array([[-4, 4], [-4, 4],
     theta_values = [theta]
     energy_values = []
     grad_values = []
-    
+
     for iteration in range(m):
         def current_pdf(x):
             return pdfs.wavefunction_hydrogen_atom_pdf(x, theta_current)
@@ -237,14 +237,22 @@ def hydrogen_wavefunction_optimiser_gd(theta, domain=np.array([[-4, 4], [-4, 4],
             x_points = samp.rejection_3d(current_pdf, 0, domain, num_samples,
                                          num_samples*10000, m=None)
         else:
-            x_points = samp.metropolis_hastings_3d(current_pdf, 0, domain, 
-                                                   stepsize, num_samples)
+            x_points = samp.metropolis_hastings_3d_opt(
+                current_pdf, 
+                [0.0, 0.0, 0.0], 
+                domain, 
+                stepsize, 
+                num_samples, 
+                burnin_val,
+                dimensions=3,
+                adapt_interval=adapt_interval
+            )
 
         if track_progress and iteration % 10 == 0:
             samp.plot_3d_samples(x_points, 50, 1)
-        
+
         # Get energy and gradient
-        current_energy, _ = ham.energy_expectation(x_points, theta_current)  # Unpack tuple
+        current_energy, _ = ham.energy_expectation(x_points, theta_current)
         current_gradient = ham.energy_expectation_theta_derivative(x_points, theta_current)
 
         energy_values.append(current_energy)
@@ -271,7 +279,7 @@ def hydrogen_wavefunction_optimiser_gd(theta, domain=np.array([[-4, 4], [-4, 4],
     # Final sampling with optimized theta
     def final_pdf(x):
         return pdfs.wavefunction_hydrogen_atom_pdf(x, theta_values[-1])
-    
+
     if method is False:
         final_points = samp.rejection_3d(final_pdf, 0, domain, num_samples,
                                          num_samples*10000, m=None)
@@ -287,14 +295,14 @@ def hydrogen_wavefunction_optimiser_gd(theta, domain=np.array([[-4, 4], [-4, 4],
         print(f"Final θ = {theta_values[-1]:.6f}")
         print(f"Final E = {final_energy:.6f}")
         print("Expected: θ ≈ 1.0, E ≈ -0.5")
-    
+
     iterations = np.arange(len(energy_values))
 
     return iterations, theta_values[-1], theta_values, grad_values, energy_values
 
 def hydrogen_wavefunction_optimiser_gd_num(theta, step, h, domain=np.array([[-4, 4], [-4, 4], [-4, 4]]),
-                                           method=False, stepsize=0.05, num_samples=100000,
-                                           m=50, eps=1e-5, learning_rate=0.1, track_progress=True):
+                                           method=False, stepsize=0.05, num_samples=100000, burnin_val =200000, 
+                                           adapt_interval=750, m=50, eps=1e-5, learning_rate=0.1, track_progress=True):
     """
     Optimise Hydrogen wavefunction parameter theta using Gradient Descent.
     """
@@ -313,16 +321,21 @@ def hydrogen_wavefunction_optimiser_gd_num(theta, step, h, domain=np.array([[-4,
             x_points = samp.rejection_3d(current_pdf, 0, domain, num_samples,
                                          num_samples*10000, m=None)
         else:
-            x_points = samp.metropolis_hastings_3d(current_pdf, 0, domain, 
-                                                   stepsize, num_samples)
+            x_points = samp.metropolis_hastings_3d_opt(
+                current_pdf, 
+                [0.0, 0.0, 0.0], 
+                domain, 
+                stepsize, 
+                num_samples, 
+                burnin_val,
+                dimensions=3,
+                adapt_interval=adapt_interval
+            )
 
         if track_progress and iteration % 10 == 0:
             samp.plot_3d_samples(x_points, 50, 1)
-        
-        # Use the SAME samples for all calculations to reduce noise
+
         current_energy = ham.energy_expectation_num(x_points, theta_current, step)
-        
-        # Use the SAME x_points for gradient calculation (CRITICAL!)
         current_gradient = ham.energy_expectation_theta_derivative_num(
             x_points, theta_current, h, step
         )
@@ -334,13 +347,11 @@ def hydrogen_wavefunction_optimiser_gd_num(theta, step, h, domain=np.array([[-4,
             print(f"Iter {iteration}: θ = {theta_current:.6f}, "
                   f"E = {current_energy:.6f}, ∇ = {current_gradient:.6f}")
 
-        # Gradient descent update
         theta_new = theta_current - learning_rate * current_gradient
         theta_new = max(0.1, min(2.0, theta_new))
         theta_values.append(theta_new)
         theta_current = theta_new
 
-        # Check convergence - consider both theta change and gradient magnitude
         if iteration > 0:
             theta_change = abs(theta_values[-1] - theta_values[-2])
             if theta_change < eps:
@@ -349,7 +360,6 @@ def hydrogen_wavefunction_optimiser_gd_num(theta, step, h, domain=np.array([[-4,
                     print(f"Final θ = {theta_current:.6f}, E = {current_energy:.6f}")
                 break
 
-    # Final sampling with optimized theta
     def final_pdf(x):
         return pdfs.wavefunction_hydrogen_atom_pdf(x, theta_values[-1])
     
@@ -361,7 +371,6 @@ def hydrogen_wavefunction_optimiser_gd_num(theta, step, h, domain=np.array([[-4,
                                                    stepsize, num_samples)
 
     samp.plot_3d_samples(final_points, 100, 1)
-    # Use numerical energy for consistency
     final_energy = ham.energy_expectation_num(final_points, theta_values[-1], step)
 
     if track_progress:
@@ -422,7 +431,7 @@ def h_optimiser_plot(iterations, e_history, grad_history, theta_history):
 
 # Hydrogen Molecule Methods: ## Add normal gradient descent.
 
-def h2_optimiser_vmc(theta, start, bond_length, stepsize=0.5, num_samples=50000,
+def h2_optimiser_vmc(theta, start, bond_length, adapt_interval=750, stepsize=0.5, num_samples=50000,
                       alpha=0.05, m=100, eps=1e-3, burnin_val=5000, A = 40):
     """
     Variational Monte Carlo optimiser for H2 molecule using stochastic gradient descent.
@@ -456,7 +465,7 @@ def h2_optimiser_vmc(theta, start, bond_length, stepsize=0.5, num_samples=50000,
         samples_6d = samp.samplings_h2_molecule(
             bond_length, start, theta_current,
             domain=None, stepsize=stepsize,
-            num_samples=num_samples, burnin_val=burnin_val
+            num_samples=num_samples, burnin_val=burnin_val, adapt_interval=adapt_interval
         )
 
         el_samples = np.array([
