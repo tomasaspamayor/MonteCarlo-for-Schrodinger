@@ -175,6 +175,63 @@ def metropolis_hastings(pdf, start, stepsize, num_samples, burnin_val=1000):
 
     return samples
 
+def metropolis_hastings_opt(pdf, start, stepsize, num_samples, burnin_val=1000, adapt_interval=100, target_acceptance_rate=0.234):
+    """Generate an array of sample points which follow a PDF of choice. This is computed
+    following the Metropolis-Hastings (MCMC) algorithm. Use an adaptive stepsize to
+    match the acceptance rate to the optimal one.
+
+    Args:
+    PDF (func) - A callable PDF function (1D).
+    start (float) - Startpoint in the range.
+    stepsize (float) - Value of move by iteration.
+    num_samples (int) - The desired number of points in the final sample.
+    burnin_val (int) - The needed number of rejected samples by the algorithm.
+
+    Returns:
+    np.array: The calculated samples following the PDF.
+    """
+    state = start
+    samples = []
+
+    current_stepsize = stepsize
+    acceptance_counts = 0
+
+    def proposal(current_state, stepsize_prop):
+        candidate = current_state + np.random.normal(0, stepsize_prop)
+        return candidate
+
+    iterations = num_samples + burnin_val
+    for i in range(iterations):
+        candidate = proposal(state, current_stepsize)
+        ratio = pdf(candidate) / pdf(state)
+        alpha = np.min([1, ratio])
+        u = np.random.random()
+
+        accepted = False
+        if u <= alpha:
+            state = candidate
+            accepted = True
+
+        if i < burnin_val:
+            if accepted:
+                acceptance_counts += 1
+            if (i + 1) % adapt_interval == 0:
+                current_acceptance_rate = acceptance_counts / adapt_interval
+                epsilon = 0.01
+                if current_acceptance_rate < target_acceptance_rate:
+                    current_stepsize *= (1.0 - epsilon)
+                elif current_acceptance_rate > target_acceptance_rate:
+                    current_stepsize *= (1.0 + epsilon)
+                acceptance_counts = 0
+
+        if i >= burnin_val:
+            samples.append(state)
+
+    samples = np.array(samples)
+    print(f'Final stepsize = {current_stepsize}')
+
+    return samples
+
 def metropolis_hastings_3d(pdf, start, domain, stepsize, num_samples, burnin_val=1000, dimensions=3):
     """Generate an array of sample points which follow a PDF of choice. This is computed
     following the Metropolis-Hastings (MCMC) algorithm.
