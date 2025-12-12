@@ -80,7 +80,7 @@ def error_calculation(wavefunction=None, coeffs=None, n=2):
 
     plt.xlabel('Step size h (log scale)', fontsize=12)
     plt.ylabel('RMS Error (log scale)', fontsize=12)
-    plt.title(f'Finite Difference Error Comparison for n={n} QHO Wavefunction', fontsize=14)
+    plt.title(f'RMS Error vs. Step Size for Finite Difference Schemes (n={n} QHO)', fontsize=14)
     plt.grid(True, which="both", alpha=0.3)
     plt.legend(fontsize=10)
     plt.tight_layout()

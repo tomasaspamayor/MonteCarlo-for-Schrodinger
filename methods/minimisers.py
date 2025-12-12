@@ -398,38 +398,55 @@ def h_optimiser_plot(iterations, e_history, grad_history, theta_history):
     plt.plot: The energy evolution.
     plt.plot: The parameter evolution.
     """
+    theta_history = np.array(theta_history)
+
     # Plot energy convergence.
-    plt.figure(figsize=(7, 4))
-    plt.plot(iterations, e_history, linewidth=2)
-    plt.grid(alpha=0.3)
-    plt.xlabel("Iteration", fontsize=12)
-    plt.ylabel("Molecule Energy", fontsize=12)
-    plt.title("Energy Convergence", fontsize=14)
+    plt.figure(figsize=(8, 5))
+    plt.plot(iterations, e_history, color='blue', linestyle='-', linewidth=2, label='Energy')
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.xlabel("Optimization Iteration", fontsize=14)
+    plt.ylabel("Molecule Energy", fontsize=14)
+    plt.title("Convergence of Energy", fontsize=16, fontweight='bold')
+    plt.tick_params(axis='both', which='major', labelsize=12)
+    plt.legend(fontsize=12, loc='best')
     plt.tight_layout()
     plt.show()
 
     # Plot gradient value.
-    plt.figure(figsize=(7,4))
-    plt.plot(iterations, grad_history, linewidth=2)
-    plt.grid(alpha=0.3)
-    plt.xlabel("Iteration", fontsize=12)
-    plt.ylabel("Molecule Energy Gradient", fontsize=12)
-    plt.title("Energy Convergence", fontsize=14)
+    plt.figure(figsize=(8, 5))
+    plt.plot(iterations, grad_history, color='red', linestyle='-', linewidth=2, label='Gradient Norm')
+    plt.yscale('log')
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.xlabel("Optimization Iteration", fontsize=14)
+    plt.ylabel("Gradient Norm", fontsize=14)
+    plt.title("Convergence of Gradient Norm (Log Scale)", fontsize=16, fontweight='bold')
+    plt.tick_params(axis='both', which='major', labelsize=12)
+    plt.legend(fontsize=12, loc='best')
     plt.tight_layout()
     plt.show()
 
     # Plot parameter convergence.
-    plt.figure(figsize=(7, 4))
-    plt.plot(iterations, theta_history, linewidth=2)
-    plt.grid(alpha=0.3)
-    plt.legend(fontsize=11)
-    plt.xlabel("Iteration", fontsize=12)
-    plt.ylabel("Theta Value", fontsize=12)
-    plt.title("Parameter Evolution", fontsize=14)
+    plt.figure(figsize=(8, 5))
+    if theta_history.ndim == 2:
+        num_params = theta_history.shape[1]
+        colors = plt.cm.tab10.colors
+        for i in range(num_params):
+            plt.plot(iterations, theta_history[:, i], 
+                     color=colors[i % 10], 
+                     linewidth=2, 
+                     label=f'$\\theta_{i}$')
+    else:
+        plt.plot(iterations, theta_history, color='purple', linewidth=2, label='$\\theta_0$')
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.legend(title='Parameter', fontsize=12, loc='best')
+    plt.xlabel("Optimization Iteration", fontsize=14)
+    plt.ylabel("Variational Parameter Value", fontsize=14) 
+    plt.title("Evolution of Variational Parameters", fontsize=16, fontweight='bold')
+    plt.tick_params(axis='both', which='major', labelsize=12)
     plt.tight_layout()
     plt.show()
 
-# Hydrogen Molecule Methods: ## Add normal gradient descent.
+# Hydrogen Molecule Methods:
 
 def h2_optimiser_vmc(theta, start, bond_length, adapt_interval=750, stepsize=0.5, num_samples=50000,
                       alpha=0.05, m=100, eps=1e-3, burnin_val=5000, A = 40):

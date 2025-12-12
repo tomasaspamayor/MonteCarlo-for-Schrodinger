@@ -1,6 +1,6 @@
 """
 See the script to solve the different questions with the methods defined
-in other files. ## Optimal step in proposal function for acceptance rate.
+in other files.
 """
 #%% Imports and constants
 
@@ -67,8 +67,8 @@ optimal_stepsize = optimal_stepsizes[0]
 samples_gaussian_r = samp.rejection(pdfs.normalized_gaussian, 1, -1, 1, 250000, 1e8)
 samples_exponential_r = samp.rejection(pdfs.normalized_exponential, 1, 0, 1, 25000, 1e8)
 
-samp.plot_samples(pdfs.normalized_gaussian, [-1, 1], samples_gaussian_r, 75, 0)
-samp.plot_samples(pdfs.normalized_exponential, [0, 1], samples_exponential_r, 75, 0)
+samp.plot_samples(pdfs.normalized_gaussian, [-1, 1], samples_gaussian_r, 75, 0, 0)
+samp.plot_samples(pdfs.normalized_exponential, [0, 1], samples_exponential_r, 75, 0, 0)
 
 samples_gaussian_mh = samp.metropolis_hastings_opt(
     pdfs.normalized_gaussian, 
@@ -87,16 +87,16 @@ samples_exponential_mh = samp.metropolis_hastings_opt(
     adapt_interval=500
 )
 
-samp.plot_samples(pdfs.normalized_gaussian, [-1,1], samples_gaussian_mh, 75, 1)
-samp.plot_samples(pdfs.normalized_exponential, [0, 1], samples_exponential_mh, 50, 1)
-
+samp.plot_samples(pdfs.normalized_gaussian, [-1,1], samples_gaussian_mh, 75, 1, 0)
+samp.plot_samples(pdfs.normalized_exponential, [0, 1], samples_exponential_mh, 50, 1, 0)
 P = 6
+optimal_stepsize = 0.030718143012686966
 
 for k in range(P):
     pdf_qo = partial(pdfs.wavefunction_qho_pdf, n=k, coeffs=hermite_coeffs)
     samples_wf_r = samp.rejection(pdf_qo, 0, -4.6, 4.5, 1000000, 1e8, m=None)
-    samp.plot_samples(pdf_qo, [-4.6, 4.5], samples_wf_r, 200, 0)
-    local_energies_r = le.local_energy_qho_numerical(samples_wf_r, optimal_stepsizes[P],
+    samp.plot_samples(pdf_qo, [-4.6, 4.5], samples_wf_r, 200, 0, k)
+    local_energies_r = le.local_energy_qho_numerical(samples_wf_r, optimal_stepsize,
                                             coeffs=hermite_coeffs, level=k, method=None)
     energy_k_r = np.mean(local_energies_r[0])
     print(f'Local energy (order {k}): {energy_k_r} (Rejection sampling)')
@@ -111,8 +111,8 @@ for k in range(P):
         burnin_val=500000,
         adapt_interval=500,
     )
-    samp.plot_samples(pdf_qo, [-4.5, 4.5], samples_wf_mh, 200, 1)
-    local_energies_mh = le.local_energy_qho_numerical(samples_wf_mh, optimal_stepsizes[P],
+    samp.plot_samples(pdf_qo, [-4.5, 4.5], samples_wf_mh, 200, 1, k)
+    local_energies_mh = le.local_energy_qho_numerical(samples_wf_mh, optimal_stepsize,
                                              coeffs=hermite_coeffs, level=k, method=None)
     energy_k_mh = np.mean(local_energies_mh[0])
     print(f'Local energy (order {k}): {energy_k_mh} (Metropolis-Hastings algorithm)')
@@ -124,21 +124,20 @@ optimal_stepsize = 0.030718143012686966
 diff.lap_comp_plot(1, step=1e-4) # 4th
 diff.lap_comp_plot(1, method=8, step=optimal_stepsize) # 8th
 
-theta_guess = 0.75
+theta_guess = 0.7
+A = 40
 
-iterations, theta_optimal, theta_history, grad_history, energy_history = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess, m=100, stepsize=0.02, eps=1e-8)
-iterations_num, theta_optimal_num, theta_history_num, grad_history_num, energy_history_num = minimisers.hydrogen_wavefunction_optimiser_gd_num(theta_guess, step=1e-2, h=0.01, m=100, stepsize=0.02, eps=1e-8, num_samples=10000, learning_rate=0.5)
-
-A = 50
+iterations, theta_optimal, theta_history, grad_history, energy_history = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess, m=100, stepsize=0.05, eps=1e-8, learning_rate=0.1, num_samples=1000000, burnin_val=200000)
 theta_unc = err.theta_uncertainty(theta_history, A)
 energy_unc = err.energy_uncertainty(energy_history, A)
+print(f'The optimal theta value is: {theta_optimal} +- {theta_unc}, with energy: {energy_history[-1]} +- {energy_unc} for Gradient Descent.')
+minimisers.h_optimiser_plot(iterations, energy_history, grad_history, theta_history[1:])
+
+#%%
+iterations_num, theta_optimal_num, theta_history_num, grad_history_num, energy_history_num = minimisers.hydrogen_wavefunction_optimiser_gd_num(theta_guess, step=1e-2, h=0.01, m=125, stepsize=0.05, eps=1e-8, num_samples=1000000, burnin_val=200000, learning_rate=0.1)
 theta_unc_num = err.theta_uncertainty(theta_history_num, A)
 energy_unc_num = err.energy_uncertainty(energy_history_num, A)
-
-print(f'The optimal theta value is: {theta_optimal} +- {theta_unc}, with energy: {energy_history[-1]} +- {energy_unc} for Gradient Descent.')
 print(f'The optimal theta value is: {theta_optimal} +- {theta_unc_num}, with energy: {energy_history[-1]} +- {energy_unc_num} for Numerical.')
-
-minimisers.h_optimiser_plot(iterations, energy_history, grad_history, theta_history[1:])
 minimisers.h_optimiser_plot(iterations_num, energy_history_num, grad_history_num, theta_history_num[1:])
 
 e_single = energy_history[-1]
@@ -187,6 +186,7 @@ iterations, theta_opt, e_opt, th_history, grad_norm_history, e_history, t_unc, e
     eps=1e-3,
     burnin_val=10000
 )
+
 minimisers.h2_optimiser_plot(iterations, e_history, grad_norm_history, th_history)
 
 def h2_pdf_opt(pos_6d):

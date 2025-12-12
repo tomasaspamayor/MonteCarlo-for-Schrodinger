@@ -415,7 +415,7 @@ def samplings_h2_molecule(bond_length, initial_point, theta, domain, stepsize, n
 
 ## Plotting methods for the encountered cases.
 
-def plot_samples(pdf, x_vals, samples, bins, method_num):
+def plot_samples(pdf, x_vals, samples, bins, method_num, n):
     """
     Plot the sampled array in a histogram with the original PDF.
 
@@ -440,7 +440,7 @@ def plot_samples(pdf, x_vals, samples, bins, method_num):
 
     plt.hist(samples, bins, density=True, label='Samples')
     plt.plot(x_array, y_array, label='PDF')
-    plt.title(f'Sampling of PDF ({method})')
+    plt.title(f'Sampling of QHO n={n} ({method})')
     plt.xlabel('x')
     plt.ylabel('y')
     plt.legend()
