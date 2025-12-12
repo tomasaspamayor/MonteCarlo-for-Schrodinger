@@ -127,19 +127,49 @@ diff.lap_comp_plot(1, method=8, step=optimal_stepsize) # 8th
 theta_guess = 0.7
 A = 40
 
+def intial_pdf_h(x):
+    return pdfs.wavefunction_hydrogen_atom_pdf(x, theta_guess)
+
+initial_samples_h = samp.metropolis_hastings_3d_opt(
+                intial_pdf_h, 
+                [0.0, 0.0, 0.0], 
+                domain=np.array([[-2.5, 2.5], [-2.5, 2.5], [-2.5, 2.5]]), 
+                stepsize=0.05, 
+                num_samples=5000000, 
+                burnin_val=500000,
+                dimensions=3,
+                adapt_interval=750
+            )
+
+samp.plot_3d_samples(initial_samples_h, 100, 1)
+
 iterations, theta_optimal, theta_history, grad_history, energy_history = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess, m=100, stepsize=0.05, eps=1e-8, learning_rate=0.1, num_samples=1000000, burnin_val=200000)
 theta_unc = err.theta_uncertainty(theta_history, A)
 energy_unc = err.energy_uncertainty(energy_history, A)
 print(f'The optimal theta value is: {theta_optimal} +- {theta_unc}, with energy: {energy_history[-1]} +- {energy_unc} for Gradient Descent.')
 minimisers.h_optimiser_plot(iterations, energy_history, grad_history, theta_history[1:])
 
-#%%
 theta_guess = 0.7
 iterations_num, theta_optimal_num, theta_history_num, grad_history_num, energy_history_num = minimisers.hydrogen_wavefunction_optimiser_gd_num(theta_guess, step=1e-2, h=0.01, m=125, stepsize=0.05, eps=1e-8, num_samples=10000, burnin_val=2000, learning_rate=0.5)
 theta_unc_num = err.theta_uncertainty(theta_history_num, A)
 energy_unc_num = err.energy_uncertainty(energy_history_num, A)
 print(f'The optimal theta value is: {theta_optimal} +- {theta_unc_num}, with energy: {energy_history[-1]} +- {energy_unc_num} for Numerical.')
 minimisers.h_optimiser_plot(iterations_num, energy_history_num, grad_history_num, theta_history_num[1:])
+
+def opt_pdf_h(x):
+    return pdfs.wavefunction_hydrogen_atom_pdf(x, theta_optimal)
+
+opt_samples_h = samp.metropolis_hastings_3d_opt(
+                opt_pdf_h, 
+                [0.0, 0.0, 0.0], 
+                domain=np.array([[-2.5, 2.5], [-2.5, 2.5], [-2.5, 2.5]]), 
+                stepsize=0.05, 
+                num_samples=5000000, 
+                burnin_val=500000,
+                dimensions=3,
+                adapt_interval=750
+            )
+samp.plot_3d_samples(opt_samples_h, 100, 1)
 
 e_single = energy_history[-1]
 
