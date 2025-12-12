@@ -483,7 +483,6 @@ def cdm_laplacian_4th(func, point, theta, step=0.01):
     x, y, z = point
     f = func(point, theta)
 
-    # x-direction
     f_x2 = func([x + 2*step, y, z], theta)
     f_x1 = func([x + step, y, z], theta)
     f_x_1 = func([x - step, y, z], theta)
@@ -493,7 +492,6 @@ def cdm_laplacian_4th(func, point, theta, step=0.01):
         -f_x2 + 16*f_x1 - 30*f + 16*f_x_1 - f_x_2
     ) / (12 * step**2)
 
-    # y-direction
     f_y2 = func([x, y + 2*step, z], theta)
     f_y1 = func([x, y + step, z], theta)
     f_y_1 = func([x, y - step, z], theta)
@@ -503,7 +501,6 @@ def cdm_laplacian_4th(func, point, theta, step=0.01):
         -f_y2 + 16*f_y1 - 30*f + 16*f_y_1 - f_y_2
     ) / (12 * step**2)
 
-    # z-direction
     f_z2 = func([x, y, z + 2*step], theta)
     f_z1 = func([x, y, z + step], theta)
     f_z_1 = func([x, y, z - step], theta)
@@ -530,7 +527,6 @@ def cdm_laplacian_8th(func, point, theta, step=0.01):
     x, y, z = point
     f = func(point, theta)
 
-    # x-direction
     f_x4 = func([x + 4*step, y, z], theta)
     f_x3 = func([x + 3*step, y, z], theta)
     f_x2 = func([x + 2*step, y, z], theta)
@@ -545,7 +541,6 @@ def cdm_laplacian_8th(func, point, theta, step=0.01):
         672*f_x_1 - 168*f_x_2 + 32*f_x_3 - f_x_4
     ) / (840 * step**2)
 
-    # y-direction
     f_y4 = func([x, y + 4*step, z], theta)
     f_y3 = func([x, y + 3*step, z], theta)
     f_y2 = func([x, y + 2*step, z], theta)
@@ -560,7 +555,6 @@ def cdm_laplacian_8th(func, point, theta, step=0.01):
         672*f_y_1 - 168*f_y_2 + 32*f_y_3 - f_y_4
     ) / (840 * step**2)
 
-    # z-direction
     f_z4 = func([x, y, z + 4*step], theta)
     f_z3 = func([x, y, z + 3*step], theta)
     f_z2 = func([x, y, z + 2*step], theta)

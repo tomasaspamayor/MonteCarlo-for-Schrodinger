@@ -29,7 +29,6 @@ def bond_length_energies(bl_range, theta, n):
     energies_uncertainties = []
 
     for b in bond_lengths:
-        # sample from the PDF corresponding to THIS bond length
         samples = samp.samplings_h2_molecule(
             bond_length=b, 
             initial_point=None,
@@ -51,5 +50,5 @@ def bond_length_energies(bl_range, theta, n):
     return bond_lengths, np.array(energies), np.array(energies_uncertainties)
 
 def morse(r, D, a, r0):
-    E_single = -0.5  # Fixed value
+    E_single = -0.5
     return D * (1 - np.exp(-a * (r - r0))) ** 2 - D + 2 * E_single

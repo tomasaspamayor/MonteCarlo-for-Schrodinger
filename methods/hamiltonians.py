@@ -33,36 +33,30 @@ def energy_expectation_num(points, theta, step):
         step: Step size for numerical Laplacian
     """
     r = np.linalg.norm(points, axis=1)
-    
+
     local_energies = []
     for i, point in enumerate(points):
-        # Calculate psi at this single point
         psi = pdfs.wavefunction_hydrogen_atom(point, theta)
-        
-        # Avoid division by very small psi
+
         if np.abs(psi) < 1e-12:
             continue
-            
-        # Numerical Laplacian at this point
+
         num_lap_psi = diff.cdm_laplacian_4th(pdfs.wavefunction_hydrogen_atom, 
                                            point, theta, step)
-        
-        # Potential energy term
-        if r[i] > 1e-12:  # Avoid division by zero
+
+        if r[i] > 1e-12:
             potential_energy_term = (-1.0 / r[i]) * psi
         else:
             potential_energy_term = 0
-            
-        # Hamiltonian acting on psi
+
         H_psi = -0.5 * num_lap_psi + potential_energy_term
-        
-        # Local energy
+
         E_L = H_psi / psi
         local_energies.append(E_L)
-    
+
     if len(local_energies) == 0:
-        return -0.5 * theta**2  # Fallback value
-    
+        return -0.5 * theta**2
+
     return np.mean(local_energies)
 
 def energy_expectation_theta_derivative(points, theta):
@@ -92,10 +86,7 @@ def energy_expectation_theta_derivative_num(points, theta, h, step):
     E_plus = energy_expectation_num(points, theta + h, step)
     E_minus = energy_expectation_num(points, theta - h, step)
 
-    # Magnitude from finite difference
     grad_magnitude = abs(E_plus - E_minus) / (2 * h)
-
-    # SIGN from physics: dE/dθ = θ - 1
     grad_sign = np.sign(theta - 1)
 
     return grad_sign * grad_magnitude
@@ -207,7 +198,6 @@ def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, s
     energies = []
 
     for b in bond_lengths:
-        # sample from the PDF corresponding to THIS bond length
         samples = samp.samplings_h2_molecule(
             bond_length=b,
             initial_point=None,

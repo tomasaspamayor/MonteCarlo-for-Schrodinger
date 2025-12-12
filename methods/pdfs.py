@@ -95,7 +95,7 @@ def wavefunction_qho_pdf(x, n, coeffs):
     x = np.asarray(x)
     if x.ndim == 0:
         h_n = poly.polynomial(x, coeffs[n])
-    else:  # array
+    else:
         h_n = np.array([poly.polynomial(xi, coeffs[n]) for xi in x])
     normalization = 1.0 / np.sqrt(2**n * math.factorial(n) * np.sqrt(np.pi))
     wavefunction_vals = h_n * np.exp(-x**2 / 2) * normalization

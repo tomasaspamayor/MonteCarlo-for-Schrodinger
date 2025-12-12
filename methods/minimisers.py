@@ -251,7 +251,6 @@ def hydrogen_wavefunction_optimiser_gd(theta, domain=np.array([[-4, 4], [-4, 4],
         if track_progress and iteration % 10 == 0:
             samp.plot_3d_samples(x_points, 50, 1)
 
-        # Get energy and gradient
         current_energy, _ = ham.energy_expectation(x_points, theta_current)
         current_gradient = ham.energy_expectation_theta_derivative(x_points, theta_current)
 
@@ -262,21 +261,17 @@ def hydrogen_wavefunction_optimiser_gd(theta, domain=np.array([[-4, 4], [-4, 4],
             print(f"Iter {iteration}: θ = {theta_current:.6f}, "
                   f"E = {current_energy:.6f}, ∇ = {current_gradient:.6f}")
 
-        # Gradient descent update
         theta_new = theta_current - learning_rate * current_gradient
-        # Optional: clip theta to reasonable range
         theta_new = max(0.1, min(2.0, theta_new))
         theta_values.append(theta_new)
         theta_current = theta_new
 
-        # Check convergence
         if iteration > 0 and abs(theta_values[-1] - theta_values[-2]) < eps:
             if track_progress:
                 print(f"Converged after {iteration} iterations")
                 print(f"Final θ = {theta_current:.6f}, E = {current_energy:.6f}")
             break
 
-    # Final sampling with optimized theta
     def final_pdf(x):
         return pdfs.wavefunction_hydrogen_atom_pdf(x, theta_values[-1])
 
@@ -310,9 +305,7 @@ def hydrogen_wavefunction_optimiser_gd_num(theta, step, h, domain=np.array([[-4,
     theta_values = [theta]
     energy_values = []
     grad_values = []
-    
-    # Use the SAME samples for both energy and gradient calculations
-    # to reduce noise in finite differences
+
     for iteration in range(m):
         def current_pdf(x):
             return pdfs.wavefunction_hydrogen_atom_pdf(x, theta_current)
@@ -400,7 +393,6 @@ def h_optimiser_plot(iterations, e_history, grad_history, theta_history):
     """
     theta_history = np.array(theta_history)
 
-    # Plot energy convergence.
     plt.figure(figsize=(8, 5))
     plt.plot(iterations, e_history, color='blue', linestyle='-', linewidth=2, label='Energy')
     plt.grid(True, linestyle='--', alpha=0.5)
@@ -412,7 +404,6 @@ def h_optimiser_plot(iterations, e_history, grad_history, theta_history):
     plt.tight_layout()
     plt.show()
 
-    # Plot gradient value.
     plt.figure(figsize=(8, 5))
     plt.plot(iterations, grad_history, color='red', linestyle='-', linewidth=2, label='Gradient Norm')
     plt.yscale('log')
@@ -425,7 +416,6 @@ def h_optimiser_plot(iterations, e_history, grad_history, theta_history):
     plt.tight_layout()
     plt.show()
 
-    # Plot parameter convergence.
     plt.figure(figsize=(8, 5))
     if theta_history.ndim == 2:
         num_params = theta_history.shape[1]
@@ -560,7 +550,6 @@ def h2_optimiser_plot(iterations, e_history, grad_history, theta_history):
     if not isinstance(grad_history, np.ndarray):
         grad_history = np.array(grad_history)
 
-    # Plot energy convergence.
     plt.figure(figsize=(7, 4))
     plt.plot(iterations, e_history, linewidth=2)
     plt.grid(alpha=0.3)
@@ -570,7 +559,6 @@ def h2_optimiser_plot(iterations, e_history, grad_history, theta_history):
     plt.tight_layout()
     plt.show()
 
-    # Plot gradient value.
     plt.figure(figsize=(7,4))
     plt.plot(iterations, grad_history, linewidth=2)
     plt.grid(alpha=0.3)
@@ -580,7 +568,6 @@ def h2_optimiser_plot(iterations, e_history, grad_history, theta_history):
     plt.tight_layout()
     plt.show()
 
-    # Plot parameter convergence.
     plt.figure(figsize=(7, 4))
     plt.plot(iterations, theta_history[:, 0], label='Theta 1', linewidth=2)
     plt.plot(iterations, theta_history[:, 1], label='Theta 2', linewidth=2)

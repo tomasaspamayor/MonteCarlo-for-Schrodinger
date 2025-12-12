@@ -108,13 +108,12 @@ def h2_local_energy(r1, r2, theta, q1, q2):
     Returns:
     float: Local energy value.
     """
-    # We first define all the needed distances:
-    r1A = np.linalg.norm(r1 - q1)  # Electron 1 to nucleus A.
-    r1B = np.linalg.norm(r1 - q2)  # Electron 1 to nucleus B.
-    r2A = np.linalg.norm(r2 - q1)  # Electron 2 to nucleus A.
-    r2B = np.linalg.norm(r2 - q2)  # Electron 2 to nucleus B.
-    r12 = np.linalg.norm(r1 - r2)  # Electron-electron distance.
-    R = np.linalg.norm(q1 - q2) # Interatomic distance.
+    r1A = np.linalg.norm(r1 - q1)
+    r1B = np.linalg.norm(r1 - q2)
+    r2A = np.linalg.norm(r2 - q1)
+    r2B = np.linalg.norm(r2 - q2)
+    r12 = np.linalg.norm(r1 - r2)
+    R = np.linalg.norm(q1 - q2)
 
     wf_vals = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta, q1, q2)
 
