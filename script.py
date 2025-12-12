@@ -134,7 +134,8 @@ print(f'The optimal theta value is: {theta_optimal} +- {theta_unc}, with energy:
 minimisers.h_optimiser_plot(iterations, energy_history, grad_history, theta_history[1:])
 
 #%%
-iterations_num, theta_optimal_num, theta_history_num, grad_history_num, energy_history_num = minimisers.hydrogen_wavefunction_optimiser_gd_num(theta_guess, step=1e-2, h=0.01, m=125, stepsize=0.05, eps=1e-8, num_samples=1000000, burnin_val=200000, learning_rate=0.1)
+theta_guess = 0.7
+iterations_num, theta_optimal_num, theta_history_num, grad_history_num, energy_history_num = minimisers.hydrogen_wavefunction_optimiser_gd_num(theta_guess, step=1e-2, h=0.01, m=125, stepsize=0.05, eps=1e-8, num_samples=10000, burnin_val=2000, learning_rate=0.5)
 theta_unc_num = err.theta_uncertainty(theta_history_num, A)
 energy_unc_num = err.energy_uncertainty(energy_history_num, A)
 print(f'The optimal theta value is: {theta_optimal} +- {theta_unc_num}, with energy: {energy_history[-1]} +- {energy_unc_num} for Numerical.')
