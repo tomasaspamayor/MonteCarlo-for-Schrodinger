@@ -6,6 +6,8 @@ in other files.
 
 from functools import partial
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 
 import methods.errors as err
 import methods.local_energy as le
@@ -14,7 +16,6 @@ import methods.differentiators as diff
 from methods import pdfs
 from methods import minimisers
 from methods import morse
-#import data
 
 hermite_coeffs = [
     [1],
@@ -267,55 +268,44 @@ for i in range(4):
     )
     samp.plot_6d_samples(samples_opt_calc, bins=100)
 
-#%%
 theta_morse = np.array([1.07244149, 0.5457916 , 0.49039177])
-bond_length_vals, energy_vals, energy_uncertainites = morse.bond_length_energies([0.5, 3], theta_morse, 20)
-#%%
+bond_length_vals, energy_vals, energy_uncertainties = morse.bond_length_energies([0.5, 3], theta_morse, 20)
 
-bond_lengths_e = np.array([0.5       , 0.63157895, 0.76315789, 0.89473684, 1.02631579,
-       1.15789474, 1.28947368, 1.42105263, 1.55263158, 1.68421053,
-       1.81578947, 1.94736842, 2.07894737, 2.21052632, 2.34210526,
-       2.47368421, 2.60526316, 2.73684211, 2.86842105, 3.        ])
+def morse_f(r, D, a, r0):
+    E_single = -0.5
+    return D * (1 - np.exp(-a * (r - r0))) ** 2 - D + 2 * E_single
 
-energy_value_e = np.array([-0.28601037, -0.63709579, -0.85099871, -0.96930524, -1.03372281,
-       -1.09789324, -1.10875586, -1.12440668, -1.1207862 , -1.1302163 ,
-       -1.12050434, -1.11035835, -1.10685506, -1.08452129, -1.07111344,
-       -1.06707832, -1.05840597, -1.05473801, -1.04197196, -1.03518121])
+p0 = [0.2, 1.0, 1.0]
+popt, pcov = curve_fit(morse_f, bond_length_vals, energy_vals, p0=p0, 
+                      sigma=energy_uncertainties, absolute_sigma=True)
 
-energy_uncertainties_e = np.array([0.00162731, 0.00160187, 0.00142811, 0.00111893, 0.00100208,
-       0.00084931, 0.00092753, 0.00087459, 0.00069726, 0.0005744 ,
-       0.00054837, 0.00049509, 0.0004743 , 0.00047429, 0.00047113,
-       0.00048683, 0.0003927 , 0.00035979, 0.00036422, 0.00035378])
+D_fit, a_fit, r0_fit = popt
 
-D_val, a_val, r0_val, pcov = morse.morse_fitting(
-    bond_lengths_e, 
-    energy_value_e, 
-    energy_uncertainties_e, e_single=-0.5,
-    p0=np.array([0.17, 1.0, 1.4, -0.5])
-)
+D_err = np.sqrt(pcov[0, 0])
+a_err = np.sqrt(pcov[1, 1])
+r0_err = np.sqrt(pcov[2, 2])
 
-# The fixed value for the single hydrogen atom energy in a.u.
-FIXED_E_SINGLE = -0.5 
+print("Fit results:")
+print(f"D  = {D_fit:.4f} ± {D_err:.4f}")
+print(f"a  = {a_fit:.4f} ± {a_err:.4f}")
+print(f"r0 = {r0_fit:.4f} ± {r0_err:.4f}")
 
-# Call morse_fitting, providing the required FIXED_E_SINGLE as the 4th positional argument.
-# IMPORTANT: Since you are now fitting with a fixed offset (E_single), 
-# the function should only return D, A, r0, and pcov (4 values, not 5). 
-# We remove the E_limit_val unpacking.
+r_smooth = np.linspace(0.5, 3.0, 200)
+energies_smooth = morse_f(r_smooth, D_fit, a_fit, r0_fit)
 
-D_val, a_val, r0_val, pcov = morse.morse_fitting( 
-    bond_lengths_e,      
-    energy_value_e,      
-    energy_uncertainties_e,      
-    e_single=FIXED_E_SINGLE, # <--- PASS THE REQUIRED ARGUMENT
-    p0=np.array([0.17, 1.0, 1.4]) # <--- GUESS IS NOW ONLY 3 PARAMETERS (D, A, r0)
-)
-# 2. Call the plotting function with the fixed E_SINGLE value
-morse.morse_plot(D_val, a_val, r0_val, bond_lengths_e, energy_value_e, FIXED_E_SINGLE)
-
-# 3. Calculate and print uncertainties
-D_unc = np.sqrt(pcov[0, 0])
-A_unc = np.sqrt(pcov[1, 1])
-r0_unc = np.sqrt(pcov[2, 2])
-print(f'\nThe fitted bond length is {r0_val:.4f} \u00B1 {r0_unc:.4e}.')
+plt.figure(figsize=(10, 6))
+plt.errorbar(bond_length_vals, energy_vals, yerr=energy_uncertainties,
+             fmt='o', color='blue', markersize=6, capsize=3,
+             label='VMC Data', alpha=0.8)
+plt.plot(r_smooth, energies_smooth, 'r-', linewidth=2.5, label='Fitted Morse Potential')
+plt.axvline(x=r0_fit, color='green', linestyle='--', alpha=0.7,
+            label=f'Equilibrium length: r = {r0_fit:.3f}')
+plt.xlabel('Bond Length', fontsize=12)
+plt.ylabel('Energy', fontsize=12)
+plt.title('Morse Potential Fit to Hydrogen Molecule Bonding Energy', fontsize=14, fontweight='bold')
+plt.legend(fontsize=11)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
 
 # %%
