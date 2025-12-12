@@ -2,8 +2,7 @@
 Here I store some previous iterations' data. Will delete before finishing.
 """
 import numpy as np
-#import methods.minimisers as mins
-
+import methods.minimisers as mins
 # Trial I
 
 stepsizes = [
@@ -1099,3 +1098,7 @@ theta_unc_num = np.float64(0.0009150320257282184)
 energy_optimal_num = np.float64(-0.49994979162499087)
 
 energy_unc_num = np.float64(6.927833283638921e-05)
+
+mins.h_optimiser_plot(iterations_num[:100], energy_history_num[:100], grad_history_num[:100], theta_history_num[:100])
+
+# %%
