@@ -1,7 +1,6 @@
 ## Define the methods to calculate all the Morse potential information.
 
 import numpy as np
-from scipy.optimize import curve_fit
 
 import matplotlib.pyplot as plt
 import methods.sampling as samp
@@ -51,63 +50,6 @@ def bond_length_energies(bl_range, theta, n):
 
     return bond_lengths, np.array(energies), np.array(energies_uncertainties)
 
-def morse_potential(r, d, a, r0, e_single):
-    """
-    Returns the Morse potential values
-    
-    Args:
-    r (list): Bond lenghts.
-    d (float): Function parameter.
-    a (float): Function parameter (dissociation energy).
-    r0 (float): Equilibrium bond length.
-    e_single (float): Ground state energy for a single hydrogen atom.
-
-    Returns:
-    float: Morse potential value.
-    """
-    return d * (1 - np.exp(- a * (r - r0))) ** 2 - d + 2 * e_single
-
-def morse_fitting(bond_lengths, energies, uncertainties, e_single, p0=np.array([0.17, 1.0, 1.4])):
-    """
-    Fit Morse potential parameters (D, A, r0) using a fixed e_single for the offset.
-    
-    Args:
-    ...
-    e_single (float): Ground state energy for a single hydrogen atom (fixed offset).
-    """
-    # Define a closure that fixes e_single for curve_fit
-    def morse_func_fit(r, D, A, r0):
-        # Calls the full morse_potential function with the fixed e_single
-        return morse_potential(r, D, A, r0, e_single)
-        
-    popt, pcov = curve_fit(
-        morse_func_fit, # This now accepts 3 fitting parameters (D, A, r0)
-        bond_lengths,
-        energies,
-        p0=p0, 
-        sigma=uncertainties,
-        absolute_sigma=True,
-        maxfev=20000
-    )
-    # Unpack only 3 fitted parameters
-    D_fit, A_fit, r0_fit = popt 
-    print(f"Fit results: r0 = {r0_fit}, D = {D_fit}, A = {A_fit}, Fixed E_single = {e_single}")
-    return D_fit, A_fit, r0_fit, pcov # Returns only 3 params and pcov
-
-def morse_plot(D_fit, A_fit, r0_fit, bond_lengths, energies, E_single_plot):
-    """
-    Plot the fitting's results.
-    """
-    # This calls the user's custom morse_potential, expecting the custom E_single value.
-    morse_values = morse_potential(bond_lengths, D_fit, A_fit, r0_fit, E_single_plot)
-
-    plt.figure(figsize=(8, 5))
-    plt.scatter(bond_lengths, energies, label='Generated samples', s=7.5)
-    plt.plot(bond_lengths, morse_values, label='Fitted Morse Potential')
-    plt.ylabel('Potential (a.u.)', fontsize=12)
-    plt.xlabel('Bond Length (a.u.)', fontsize=12)
-    plt.title('VMC Data Fitted with Custom Morse Potential', fontsize=14)
-    plt.legend()
-    plt.grid(alpha=0.3)
-    plt.tight_layout()
-    plt.show()
+def morse(r, D, a, r0):
+    E_single = -0.5  # Fixed value
+    return D * (1 - np.exp(-a * (r - r0))) ** 2 - D + 2 * E_single

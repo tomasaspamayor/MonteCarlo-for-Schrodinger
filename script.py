@@ -2,7 +2,7 @@
 See the script to solve the different questions with the methods defined
 in other files.
 """
-#%% Imports and constants
+# Imports and constants
 
 from functools import partial
 import numpy as np
@@ -28,7 +28,7 @@ hermite_coeffs = [
 
 P = len(hermite_coeffs)
 
-#%% 2.1 - QHO Local Energy Error Calculations
+# 2.1 - QHO Local Energy Error Calculations
 
 x_example = np.linspace(-4, 4, 1000)
 
@@ -61,7 +61,7 @@ print(stepsize_errors)
 
 optimal_stepsize = optimal_stepsizes[0]
 
-#%% 2.2 - QHO Sampling & Eingenvalues
+# 2.2 - QHO Sampling & Eingenvalues
 
 ## We plot the algorithms' samples for different example PDFs.
 
@@ -91,7 +91,6 @@ samples_exponential_mh = samp.metropolis_hastings_opt(
 samp.plot_samples(pdfs.normalized_gaussian, [-1,1], samples_gaussian_mh, 75, 1, 0)
 samp.plot_samples(pdfs.normalized_exponential, [0, 1], samples_exponential_mh, 50, 1, 0)
 P = 6
-optimal_stepsize = 0.030718143012686966
 
 for k in range(P):
     pdf_qo = partial(pdfs.wavefunction_qho_pdf, n=k, coeffs=hermite_coeffs)
@@ -118,9 +117,8 @@ for k in range(P):
     energy_k_mh = np.mean(local_energies_mh[0])
     print(f'Local energy (order {k}): {energy_k_mh} (Metropolis-Hastings algorithm)')
 
-#%% 3 - Hydrogen Ground State Optimising
+# 3 - Hydrogen Ground State Optimising
 
-optimal_stepsize = 0.030718143012686966
 # We check the numerical Laplacian works well:
 diff.lap_comp_plot(1, step=1e-4) # 4th
 diff.lap_comp_plot(1, method=8, step=optimal_stepsize) # 8th
@@ -144,14 +142,15 @@ initial_samples_h = samp.metropolis_hastings_3d_opt(
 
 samp.plot_3d_samples(initial_samples_h, 100, 1)
 
+theta_guess = 0.7
+
 iterations, theta_optimal, theta_history, grad_history, energy_history = minimisers.hydrogen_wavefunction_optimiser_gd(theta_guess, m=100, stepsize=0.05, eps=1e-8, learning_rate=0.1, num_samples=1000000, burnin_val=200000)
 theta_unc = err.theta_uncertainty(theta_history, A)
 energy_unc = err.energy_uncertainty(energy_history, A)
 print(f'The optimal theta value is: {theta_optimal} +- {theta_unc}, with energy: {energy_history[-1]} +- {energy_unc} for Gradient Descent.')
 minimisers.h_optimiser_plot(iterations, energy_history, grad_history, theta_history[1:])
 
-theta_guess = 0.7
-iterations_num, theta_optimal_num, theta_history_num, grad_history_num, energy_history_num = minimisers.hydrogen_wavefunction_optimiser_gd_num(theta_guess, step=1e-2, h=0.01, m=125, stepsize=0.05, eps=1e-8, num_samples=10000, burnin_val=2000, learning_rate=0.5)
+iterations_num, theta_optimal_num, theta_history_num, grad_history_num, energy_history_num = minimisers.hydrogen_wavefunction_optimiser_gd_num(theta_guess, step=1e-2, h=0.01, m=100, stepsize=0.05, eps=1e-8, num_samples=1000000, burnin_val=200000, learning_rate=0.1)
 theta_unc_num = err.theta_uncertainty(theta_history_num, A)
 energy_unc_num = err.energy_uncertainty(energy_history_num, A)
 print(f'The optimal theta value is: {theta_optimal} +- {theta_unc_num}, with energy: {energy_history[-1]} +- {energy_unc_num} for Numerical.')
@@ -174,7 +173,7 @@ samp.plot_3d_samples(opt_samples_h, 100, 1)
 
 e_single = energy_history[-1]
 
-#%% 4 - Hydrogen Molecule Optimisation
+# 4 - Hydrogen Molecule Optimisation
 
 # First we plot out the original sampling:
 # Define some needed constants:
@@ -268,11 +267,11 @@ for i in range(4):
     )
     samp.plot_6d_samples(samples_opt_calc, bins=100)
 
-theta_morse = np.array([1.07244149, 0.5457916 , 0.49039177])
+theta_morse = theta_opt_h2
 bond_length_vals, energy_vals, energy_uncertainties = morse.bond_length_energies([0.5, 3], theta_morse, 20)
 
 def morse_f(r, D, a, r0):
-    E_single = -0.5
+    E_single = e_single
     return D * (1 - np.exp(-a * (r - r0))) ** 2 - D + 2 * E_single
 
 p0 = [0.2, 1.0, 1.0]
@@ -307,5 +306,3 @@ plt.legend(fontsize=11)
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.show()
-
-# %%

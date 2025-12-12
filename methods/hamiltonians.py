@@ -187,7 +187,7 @@ def h2_energy_expectation_uncertainty(local_energies):
 
     return sem
 
-def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, stepsize=0.15):
+def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, stepsize=0.15, adapt_interval=750):
     """
     Calculates the energies of the ground state with varying internuclear
     separation. Useful for Morse Potential calculations.
@@ -215,7 +215,8 @@ def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, s
             domain=None,
             stepsize=stepsize,
             num_samples=num_samples,
-            burnin_val=burnin
+            burnin_val=burnin,
+            adapt_interval=adapt_interval
         )
 
         e = h2_energy_expectation(samples, b, theta)

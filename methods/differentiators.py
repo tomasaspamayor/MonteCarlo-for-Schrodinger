@@ -630,8 +630,11 @@ def lap_comp_plot(theta, bounds=np.array([-3,3]), step=0.01, method=1):
 
     plt.figure(figsize=(10, 6))
     plt.loglog(radial_distances, absolute_error, 'b.', markersize=5)
-    plt.title(f'Absolute Error of Numerical Laplacian vs. Radial Distance (theta={theta}, h={step})')
-    plt.xlabel('Radial Distance (log scale)')
-    plt.ylabel('Absolute Error (log scale)')
+    plt.title(f'Absolute Error of Numerical Laplacian vs. Radial Distance (theta={theta}, h={step})', 
+            fontsize=14, fontweight='bold')
+    plt.xlabel('Radial Distance (log scale)', fontsize=12, fontweight='bold')
+    plt.ylabel('Absolute Error (log scale)', fontsize=12, fontweight='bold')
     plt.grid(True, which="both", linestyle='--', alpha=0.6)
+    plt.xticks(fontsize=11, fontweight='bold')
+    plt.yticks(fontsize=11, fontweight='bold')
     plt.show()
