@@ -3,7 +3,7 @@ Here I store some previous iterations' data. Will delete before finishing.
 """
 import numpy as np
 import methods.minimisers as mins
-# Trial I
+#%% Trial I
 
 stepsizes = [
  0.5,.55102041, 0.60204082, 0.65306122, 0.70408163, 0.75510204,
@@ -1268,4 +1268,25 @@ from methods import minimisers
 
 minimisers.h_optimiser_plot(iterations_h2, energy_history_h2, grad_norm_hist_h2, theta_history_h2)
 
+# %% MORSE FINAL
+from methods import morse
+import matplotlib.pyplot as plt
+import numpy as np
+bond_lengths = np.array([0.5       , 0.63157895, 0.76315789, 0.89473684, 1.02631579,
+       1.15789474, 1.28947368, 1.42105263, 1.55263158, 1.68421053,
+       1.81578947, 1.94736842, 2.07894737, 2.21052632, 2.34210526,
+       2.47368421, 2.60526316, 2.73684211, 2.86842105, 3.        ])
+
+energy_values = np.array([-0.28601037, -0.63709579, -0.85099871, -0.96930524, -1.03372281,
+       -1.09789324, -1.10875586, -1.12440668, -1.1207862 , -1.1302163 ,
+       -1.12050434, -1.11035835, -1.10685506, -1.08452129, -1.07111344,
+       -1.06707832, -1.05840597, -1.05473801, -1.04197196, -1.03518121])
+
+energy_uncertainties = np.array([0.00162731, 0.00160187, 0.00142811, 0.00111893, 0.00100208,
+       0.00084931, 0.00092753, 0.00087459, 0.00069726, 0.0005744 ,
+       0.00054837, 0.00049509, 0.0004743 , 0.00047429, 0.00047113,
+       0.00048683, 0.0003927 , 0.00035979, 0.00036422, 0.00035378])
+
+plt.scatter(bond_lengths, energy_values)
+plt.show()
 # %%

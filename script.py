@@ -206,25 +206,25 @@ samples = samp.metropolis_hastings_3d_opt(
 
 samp.plot_6d_samples(samples, bins=100)
 
-iterations, theta_opt, e_opt, th_history, grad_norm_history, e_history, t_unc, e_unc = minimisers.h2_optimiser_vmc(
+iterations_h2, theta_opt_h2, e_opt, th_history_h2, grad_norm_history_h2, e_history_h2, t_unc_h2, e_unc_h2 = minimisers.h2_optimiser_vmc(
     theta=[0.5, 0.5, 0.5],
     start=[0.0, 0.0, -0.5, 0.0, 0.0, 0.5],
     bond_length=2.0,
-    stepsize=0.5,
+    stepsize=0.1,
     num_samples=200000,
     alpha=0.05,
-    m=40,
-    eps=1e-3,
-    burnin_val=10000
+    m=50,
+    eps=1e-4,
+    burnin_val=50000
 )
 
-minimisers.h2_optimiser_plot(iterations, e_history, grad_norm_history, th_history)
+minimisers.h_optimiser_plot(iterations_h2, e_history_h2, grad_norm_history_h2, th_history_h2)
 
 def h2_pdf_opt(pos_6d):
     """PDF for Hydrogen Molecule"""
     r1 = pos_6d[:3]
     r2 = pos_6d[3:]
-    wf = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta_opt, q1, q2)
+    wf = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta_opt_h2, q1, q2)
     return wf ** 2
 
 samples_opt = samp.metropolis_hastings_3d_opt(
@@ -240,22 +240,82 @@ samples_opt = samp.metropolis_hastings_3d_opt(
 
 samp.plot_6d_samples(samples_opt, bins=100)
 
-theta_morse = theta_opt
-bond_length_vals, energy_vals, energy_uncertainites = morse.bond_length_energies([0.5, 3],
-                                theta_morse, 200, num_samples=1000000)
+bond_lengths = [0.5, 1, 2, 3]
+q1 = np.array([0, 0, -bond_length/2])
+q2 = np.array([0, 0, bond_length/2])
+start_pos = [0.1, 0, -0.7, -0.1, 0, 0.7]
+domain_6d = [[-3, 3], [-3, 3], [-3, 3],
+             [-3, 3], [-3, 3], [-3, 3]]
 
-#bond_length_vals = data.bond_length_vals
-#N = len(bond_length_vals)
-#energy_vals = data.energy_vals
-#energy_uncertainites = np.ones(N)
+for i in range(4):
+    def h2_pdf_opt_bl(pos_6d):
+        """PDF for Hydrogen Molecule"""
+        r1 = pos_6d[:3]
+        r2 = pos_6d[3:]
+        wf = pdfs.wavefunction_hydrogen_molecule(r1, r2, theta_opt_h2, [0, 0, -bond_lengths[i]/2], [0, 0, bond_lengths[i]/2])
+        return wf ** 2
 
-D_val, a_val, r0_val, pcov = morse.morse_fitting(bond_length_vals, energy_vals, energy_uncertainites, e_single)
-morse.morse_plot(D_val, a_val, r0_val, bond_length_vals, energy_vals, 1.4)
+    samples_opt_calc = samp.metropolis_hastings_3d_opt(
+        pdf=h2_pdf_opt_bl,
+        start=start_pos,
+        domain=domain_6d,
+        stepsize=0.1,
+        num_samples=2500000,
+        adapt_interval=2000,
+        burnin_val=250000,
+        dimensions=6
+    )
+    samp.plot_6d_samples(samples_opt_calc, bins=100)
 
+#%%
+theta_morse = np.array([1.07244149, 0.5457916 , 0.49039177])
+bond_length_vals, energy_vals, energy_uncertainites = morse.bond_length_energies([0.5, 3], theta_morse, 20)
+#%%
+
+bond_lengths_e = np.array([0.5       , 0.63157895, 0.76315789, 0.89473684, 1.02631579,
+       1.15789474, 1.28947368, 1.42105263, 1.55263158, 1.68421053,
+       1.81578947, 1.94736842, 2.07894737, 2.21052632, 2.34210526,
+       2.47368421, 2.60526316, 2.73684211, 2.86842105, 3.        ])
+
+energy_value_e = np.array([-0.28601037, -0.63709579, -0.85099871, -0.96930524, -1.03372281,
+       -1.09789324, -1.10875586, -1.12440668, -1.1207862 , -1.1302163 ,
+       -1.12050434, -1.11035835, -1.10685506, -1.08452129, -1.07111344,
+       -1.06707832, -1.05840597, -1.05473801, -1.04197196, -1.03518121])
+
+energy_uncertainties_e = np.array([0.00162731, 0.00160187, 0.00142811, 0.00111893, 0.00100208,
+       0.00084931, 0.00092753, 0.00087459, 0.00069726, 0.0005744 ,
+       0.00054837, 0.00049509, 0.0004743 , 0.00047429, 0.00047113,
+       0.00048683, 0.0003927 , 0.00035979, 0.00036422, 0.00035378])
+
+D_val, a_val, r0_val, pcov = morse.morse_fitting(
+    bond_lengths_e, 
+    energy_value_e, 
+    energy_uncertainties_e, e_single=-0.5,
+    p0=np.array([0.17, 1.0, 1.4, -0.5])
+)
+
+# The fixed value for the single hydrogen atom energy in a.u.
+FIXED_E_SINGLE = -0.5 
+
+# Call morse_fitting, providing the required FIXED_E_SINGLE as the 4th positional argument.
+# IMPORTANT: Since you are now fitting with a fixed offset (E_single), 
+# the function should only return D, A, r0, and pcov (4 values, not 5). 
+# We remove the E_limit_val unpacking.
+
+D_val, a_val, r0_val, pcov = morse.morse_fitting( 
+    bond_lengths_e,      
+    energy_value_e,      
+    energy_uncertainties_e,      
+    e_single=FIXED_E_SINGLE, # <--- PASS THE REQUIRED ARGUMENT
+    p0=np.array([0.17, 1.0, 1.4]) # <--- GUESS IS NOW ONLY 3 PARAMETERS (D, A, r0)
+)
+# 2. Call the plotting function with the fixed E_SINGLE value
+morse.morse_plot(D_val, a_val, r0_val, bond_lengths_e, energy_value_e, FIXED_E_SINGLE)
+
+# 3. Calculate and print uncertainties
 D_unc = np.sqrt(pcov[0, 0])
 A_unc = np.sqrt(pcov[1, 1])
 r0_unc = np.sqrt(pcov[2, 2])
-
-print(f'The fitted bond length is {r0_val} +- {r0_unc}, and the dissociation energy {D_val} +- {D_unc}.')
+print(f'\nThe fitted bond length is {r0_val:.4f} \u00B1 {r0_unc:.4e}.')
 
 # %%

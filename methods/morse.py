@@ -9,7 +9,7 @@ import methods.hamiltonians as ham
 
 plt.style.use('seaborn-v0_8-paper')
 
-def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, stepsize=0.15):
+def bond_length_energies(bl_range, theta, n):
     """
     Compute the energies of the molecule over a range of bond lenghts.
     
@@ -36,9 +36,10 @@ def bond_length_energies(bl_range, theta, n, num_samples=200000, burnin=20000, s
             initial_point=None,
             theta=theta,
             domain=None,
-            stepsize=stepsize,
-            num_samples=num_samples,
-            burnin_val=burnin
+            stepsize=0.15,
+            num_samples=250000,
+            burnin_val=20000,
+            adapt_interval=40000
         )
 
         e, energy_locals = ham.h2_energy_expectation(samples, b, theta)
@@ -66,66 +67,47 @@ def morse_potential(r, d, a, r0, e_single):
     """
     return d * (1 - np.exp(- a * (r - r0))) ** 2 - d + 2 * e_single
 
-def morse_fitting(bond_lengths, energies, uncertainties, e_single,
-                  p0=np.array([0.17, 1.0, 1.4])):
+def morse_fitting(bond_lengths, energies, uncertainties, e_single, p0=np.array([0.17, 1.0, 1.4])):
     """
-    Fit Morse potential parameters (D, A, r0) to computed energies.
-
+    Fit Morse potential parameters (D, A, r0) using a fixed e_single for the offset.
+    
     Args:
-    bond_lengths (list) Distances at which the molecular energies were computed.
-    energies (list): The associated computed energy values.
-    e_single (list): Energy of a single hydrogen atom (used inside morse_potential).
-    p0 (list): Initial guess for [D, A, r0].
-
-    Returns
-
-    D_fit (list): Fitted dissociation energy parameter.
-    A_fit (list): Fitted width parameter.
-    r0_fit (list): Ftitted equilibrium bond length.
-    pcov (list): Covariance matrix from the fit.
+    ...
+    e_single (float): Ground state energy for a single hydrogen atom (fixed offset).
     """
-
+    # Define a closure that fixes e_single for curve_fit
     def morse_func_fit(r, D, A, r0):
+        # Calls the full morse_potential function with the fixed e_single
         return morse_potential(r, D, A, r0, e_single)
-
+        
     popt, pcov = curve_fit(
-        morse_func_fit,
+        morse_func_fit, # This now accepts 3 fitting parameters (D, A, r0)
         bond_lengths,
         energies,
-        p0=p0,
-        sigma = uncertainties,
+        p0=p0, 
+        sigma=uncertainties,
         absolute_sigma=True,
         maxfev=20000
     )
+    # Unpack only 3 fitted parameters
+    D_fit, A_fit, r0_fit = popt 
+    print(f"Fit results: r0 = {r0_fit}, D = {D_fit}, A = {A_fit}, Fixed E_single = {e_single}")
+    return D_fit, A_fit, r0_fit, pcov # Returns only 3 params and pcov
 
-    D_fit, A_fit, r0_fit = popt
-
-    print(f"Fit results: r0 = {r0_fit}, D = {D_fit}, A = {A_fit}")
-    print("Experimental vals: r0 = 1.14, D = 0.17")
-
-    return D_fit, A_fit, r0_fit, pcov
-
-def morse_plot(d_fit, a_fit, r0_fit, bond_lengths, energies, e_single):
+def morse_plot(D_fit, A_fit, r0_fit, bond_lengths, energies, E_single_plot):
     """
     Plot the fitting's results.
-    
-    Args:
-    D_fit (float): Fitted parameter D
-    a_fit (float): Fitted parameter a
-    r0_fit (float): Fitted parameter r_0
-    bond_lengths (list): Bond lengths at which to compute the potential.
-    energies (list): Calculated energies at said bond_lengths
-    e_single (float): Energy of a single hydrogen atom.
-
-    Returns:
-    plt.plot: Morse potential against distance, with fit.
     """
+    # This calls the user's custom morse_potential, expecting the custom E_single value.
+    morse_values = morse_potential(bond_lengths, D_fit, A_fit, r0_fit, E_single_plot)
 
-    morse_values = morse_potential(bond_lengths, d_fit, a_fit, r0_fit, e_single)
-
+    plt.figure(figsize=(8, 5))
     plt.scatter(bond_lengths, energies, label='Generated samples', s=7.5)
     plt.plot(bond_lengths, morse_values, label='Fitted Morse Potential')
-    plt.ylabel('Potential')
-    plt.xlabel('Bond Length')
+    plt.ylabel('Potential (a.u.)', fontsize=12)
+    plt.xlabel('Bond Length (a.u.)', fontsize=12)
+    plt.title('VMC Data Fitted with Custom Morse Potential', fontsize=14)
     plt.legend()
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
     plt.show()
